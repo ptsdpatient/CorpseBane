@@ -25,7 +25,7 @@ public class PathFinder {
         };
         targetFound=false;
     }
-    public Array<Vector2> findPath(Vector2 startPosition,Vector2 endPosition){
+    public Array<Vector2> findPath(Vector2 startPosition,Vector2 endPosition,int distance){
         initializeCell();
         selectedPath.add(startPosition);
         exploredPath.add(new GameCell((int) startPosition.x, (int) startPosition.y));
@@ -45,13 +45,26 @@ public class PathFinder {
 
             calculateCost(endPosition);
 
-            if((currentCell.x==endPosition.x && currentCell.y==endPosition.y)||index>10)
+            if((currentCell.x==endPosition.x && currentCell.y==endPosition.y)||index>distance)
             {
                 targetFound=true;
                 for(GameCell cell : exploredPath){
                     if(cell.isExplored&&cell.isPath){
                         selectedPath.add(new Vector2(cell.i,cell.j));
                     }
+                }
+                for(GameCell cell : gameCells){
+                    cell.hcost=0;
+                    cell.fcost=0;
+                    cell.gcost=0;
+//                    uncomment these for not debugging
+
+//                    cell.isActive=false;
+//                    cell.isHovered=false;
+//                    cell.isStart=false;
+//                    cell.isEnd=false;
+//                    cell.isPath=true;
+//                    cell.isExplored=false;
                 }
             }
         }

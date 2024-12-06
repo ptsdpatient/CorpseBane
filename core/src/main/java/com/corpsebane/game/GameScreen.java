@@ -53,6 +53,14 @@ public class GameScreen implements Screen {
         cellSize.y = Gdx.graphics.getHeight() / 22f;
 
         initializeCells();
+
+        generateWorld();
+    }
+
+    private void generateWorld() {
+        for(GameCell cell : gameCells){
+
+        }
     }
 
     private void setWindowed(){
@@ -264,6 +272,6 @@ public class GameScreen implements Screen {
             if(cell.isStart)startCell=new Vector2(cell.i,cell.j);
             if(cell.isEnd)endCell=new Vector2(cell.i,cell.j);
         }
-        print(""+pathFinder.findPath(startCell,endCell));
+        print(""+pathFinder.findPath(startCell,endCell,5));
     }
 }
