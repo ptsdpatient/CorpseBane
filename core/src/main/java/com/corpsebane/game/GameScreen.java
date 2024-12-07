@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -25,7 +26,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 
 public class GameScreen implements Screen {
-
+    public Player player;
     public CorpseBane game;
     public SpriteBatch batch;
     Vector3 touch;
@@ -33,18 +34,21 @@ public class GameScreen implements Screen {
     boolean startSelected=false,endSelected=false;
     PathFinder pathFinder;
     public static OrthographicCamera camera;
-    public static Vector2 screen;
+    public static Vector2 screen=new Vector2(1280/2f,720/2f);
     public ShapeRenderer shapeRenderer;
     public Vector2 cellSize;
     public static GameCell[] gameCells;
     public Viewport viewport;
-    static int ROWS=22*2,COLS=40*2;
+    static int gridScale=2;
+    static int ROWS=22*gridScale,COLS=40*gridScale;
 
     public GameScreen(CorpseBane game){
         touch=new Vector3();
 
         this.game=game;
         this.batch=game.batch;
+
+        player = new Player("player");
 
         pathFinder=new PathFinder();
 
@@ -60,10 +64,13 @@ public class GameScreen implements Screen {
         initializeCells();
 
         generateWorld();
+
+//        camera.zoom=0.25f;
+
     }
 
     private void generateWorld() {
-        int dungeonCount = MathUtils.random(5, 18);
+        int dungeonCount = MathUtils.random(4, gridScale*6);
         Array<Dungeon> dungeons = new Array<>();
 
         Rectangle gameRect = new Rectangle(0, 0, COLS, ROWS);
@@ -133,13 +140,14 @@ public class GameScreen implements Screen {
             }
         }
 
-
+        player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
 
     }
 
     private int getCellIndex(int i, int j) {
         return i * COLS + j;
     }
+
     private Vector2 getRandomCellInRectangle(Rectangle rect) {
         int randomX = MathUtils.random((int) rect.x+1, (int) (rect.x + rect.width - 2));
         int randomY = MathUtils.random((int) rect.y+1, (int) (rect.y + rect.height - 2));
@@ -180,23 +188,22 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        camera.position.set(screen.x/2f,screen.y/2f,0);
+//        camera.position.set(screen.x/2f,screen.y/2f,0);
+        camera.position.set(player.obj.getX(),player.obj.getY(),0);
         camera.update();
 
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        batch.draw(new Texture(load("icon.png")),50,50);
-        batch.end();
+
 
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
-            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
-            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
+//            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
+//            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
+//            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
+            if(!cell.isRoad&&!cell.isBorder) shapeRenderer.setColor(Color.RED);
 
             shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
@@ -204,13 +211,18 @@ public class GameScreen implements Screen {
         shapeRenderer.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.DARK_GRAY);
+        shapeRenderer.setColor(Color.BLACK);
 
         for(GameCell cell : gameCells){
-//            if(cell.isRoad||cell.isBorder)
+            if(cell.isRoad||cell.isBorder)
                 shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
         shapeRenderer.end();
+
+        batch.setProjectionMatrix(camera.combined);
+        batch.begin();
+        player.render(batch);
+        batch.end();
 
     }
 
@@ -249,9 +261,39 @@ public class GameScreen implements Screen {
 
             @Override
             public boolean keyUp(int keycode) {
-                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
-                    findPath();
+//                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
+//                    findPath();
+//                }
+                if(keycode==Input.Keys.RIGHT||keycode==Input.Keys.D){
+                    if(player.obj.getRotation()!=0){
+                        player.obj.setRotation(0);
+                        return false;
+
+                    }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
                 }
+                if(keycode==Input.Keys.UP||keycode==Input.Keys.W){
+                    if(player.obj.getRotation()!=90){
+                        player.obj.setRotation(90);
+                        return false;
+
+                    }else if(checkCollision(player.coordinates.x, player.coordinates.y+1))  player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
+                }
+                if(keycode==Input.Keys.LEFT||keycode==Input.Keys.A){
+                    if(player.obj.getRotation()!=180){
+                        player.obj.setRotation(180);
+                        return false;
+
+                    }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
+                }
+                if(keycode==Input.Keys.DOWN||keycode==Input.Keys.S){
+                    if(player.obj.getRotation()!=-90){
+                        player.obj.setRotation(-90);
+                        return false;
+
+                    }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
+                }
+
+
                 return false;
             }
 
@@ -354,12 +396,27 @@ public class GameScreen implements Screen {
         });
     }
 
-    private void findPath() {
-        Vector2 startCell=new Vector2(),endCell=new Vector2();
-        for(GameCell cell : gameCells){
-            if(cell.isStart)startCell=new Vector2(cell.i,cell.j);
-            if(cell.isEnd)endCell=new Vector2(cell.i,cell.j);
-        }
-        print(""+pathFinder.findPath(startCell,endCell,5));
+
+
+    private boolean checkCollision(float i, float j) {
+        int index = getCellIndex((int) j, (int) i);
+
+        print("position is : " + i+", "+j+", index is :"+index);
+
+//        print("is path : "+());
+
+//        print("checking collisions: " + ((gameCells[index].isRoad && !gameCells[index].isBorder)?"path":"not path"));
+        return !gameCells[index].isBorder&&gameCells[index].isRoad ||gameCells[index].isActive;
+//        return gameCells[index].isRoad && !gameCells[index].isBorder;
     }
+
+
+//    private void findPath() {
+//        Vector2 startCell=new Vector2(),endCell=new Vector2();
+//        for(GameCell cell : gameCells){
+//            if(cell.isStart)startCell=new Vector2(cell.i,cell.j);
+//            if(cell.isEnd)endCell=new Vector2(cell.i,cell.j);
+//        }
+//        print(""+pathFinder.findPath(startCell,endCell,5));
+//    }
 }

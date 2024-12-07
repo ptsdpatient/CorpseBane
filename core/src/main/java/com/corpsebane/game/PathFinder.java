@@ -34,6 +34,9 @@ public class PathFinder {
         while(currentCell.x!=endPosition.x&&currentCell.y!=endPosition.y){
             while (currentCell.y != endPosition.y) {
                 gameCells[(int) (COLS * currentCell.y + currentCell.x)].isRoad = true;
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isBorder = false;
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isActive = true;
+
                 if (currentCell.y <= endPosition.y) {
                     currentCell.y++;
                 } else {
@@ -43,6 +46,9 @@ public class PathFinder {
 
             while (currentCell.x != endPosition.x) {
                 gameCells[(int) (COLS * currentCell.y + currentCell.x)].isRoad = true;
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isBorder = false;
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isActive = true;
+
                 if (currentCell.x <= endPosition.x) {
                     currentCell.x++;
                 } else {
