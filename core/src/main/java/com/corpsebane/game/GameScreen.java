@@ -31,6 +31,7 @@ public class GameScreen implements Screen {
     public SpriteBatch batch;
     Vector3 touch;
     Vector2 point;
+    float playerControlDelay=0f,playerFireDelay=0f;
     boolean startSelected=false,endSelected=false;
     PathFinder pathFinder;
     public static OrthographicCamera camera;
@@ -40,7 +41,9 @@ public class GameScreen implements Screen {
     public static GameCell[] gameCells;
     public Viewport viewport;
     static int gridScale=2;
+    float playerSpeed= 0.375f,fireRate=1f;
     static int ROWS=22*gridScale,COLS=40*gridScale;
+    Array<Projectile> projectiles;
 
     public GameScreen(CorpseBane game){
         touch=new Vector3();
@@ -50,6 +53,7 @@ public class GameScreen implements Screen {
 
         player = new Player("player");
 
+        projectiles=new Array<>();
         pathFinder=new PathFinder();
 
         setWindowed();
@@ -65,7 +69,7 @@ public class GameScreen implements Screen {
 
         generateWorld();
 
-        camera.zoom=0.25f;
+        camera.zoom=0.15f;
 
     }
 
@@ -144,7 +148,7 @@ public class GameScreen implements Screen {
 
     }
 
-    private int getCellIndex(int i, int j) {
+    private static int getCellIndex(int i, int j) {
         return i * COLS + j;
     }
 
@@ -189,10 +193,8 @@ public class GameScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 //        camera.position.set(screen.x/2f,screen.y/2f,0);
-        camera.position.set(player.obj.getX(),player.obj.getY(),0);
+        camera.position.set(player.obj.getX()+player.playerSize.x/2f,player.obj.getY()+player.playerSize.y/2f,0);
         camera.update();
-
-
 
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -202,7 +204,7 @@ public class GameScreen implements Screen {
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
-            if(!cell.isRoad&&!cell.isBorder) shapeRenderer.setColor(Color.PURPLE);
+//            if(!cell.isRoad&&!cell.isBorder) shapeRenderer.setColor(Color.PURPLE);
 
             if(cell.isEnd)shapeRenderer.setColor(Color.RED);
             if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
@@ -223,8 +225,84 @@ public class GameScreen implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
+
+        for(Projectile projectile : projectiles){
+            projectile.render(batch,delta);
+            if(projectile.isDead)projectiles.removeValue(projectile,true);
+        }
+
         player.render(batch);
+
+        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?1:0]);
+
+        if(playerFireDelay>fireRate&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
+            print("fire");
+            handleFire();
+        }else{
+            playerFireDelay+=delta;
+        }
+
+        if(playerControlDelay>playerSpeed){
+            controlPlayer();
+        }else{
+            playerControlDelay+=delta;
+        }
+
         batch.end();
+
+    }
+
+    private void handleFire() {
+        if(Gdx.input.isKeyPressed(Input.Keys.Z)||Gdx.input.isKeyPressed(Input.Buttons.LEFT)) {
+//            print("fire");
+            projectiles.add(new Projectile(player.playerSheet[3], player.coordinates, player.obj.getRotation()));
+            playerFireDelay = 0f;
+        }
+    }
+
+    private void controlPlayer() {
+        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)||Gdx.input.isKeyPressed(Input.Keys.D)){
+            playerControlDelay=0f;
+
+            if(player.obj.getRotation()!=0){
+                player.obj.setRotation(0);
+                return;
+            }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) {
+                player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
+            }
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.UP)||Gdx.input.isKeyPressed(Input.Keys.W)){
+            playerControlDelay=0f;
+
+            if(player.obj.getRotation()!=90){
+                player.obj.setRotation(90);
+                return;
+
+            }else if(checkCollision(player.coordinates.x, player.coordinates.y+1)){
+                player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
+            }
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.LEFT)||Gdx.input.isKeyPressed(Input.Keys.A)){
+            playerControlDelay=0f;
+
+            if(player.obj.getRotation()!=180){
+                player.obj.setRotation(180);
+                return;
+
+            }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) {
+                player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
+            }
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.DOWN)||Gdx.input.isKeyPressed(Input.Keys.S)){
+            playerControlDelay=0f;
+
+            if(player.obj.getRotation()!=-90){
+                player.obj.setRotation(-90);
+
+            }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) {
+                player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
+            }
+        }
 
     }
 
@@ -266,34 +344,7 @@ public class GameScreen implements Screen {
                 if(keycode==Input.Keys.SPACE && startSelected && endSelected){
                     findPath();
                 }
-                if(keycode==Input.Keys.RIGHT||keycode==Input.Keys.D){
-                    if(player.obj.getRotation()!=0){
-                        player.obj.setRotation(0);
-                        return false;
 
-                    }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
-                }
-                if(keycode==Input.Keys.UP||keycode==Input.Keys.W){
-                    if(player.obj.getRotation()!=90){
-                        player.obj.setRotation(90);
-                        return false;
-
-                    }else if(checkCollision(player.coordinates.x, player.coordinates.y+1))  player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
-                }
-                if(keycode==Input.Keys.LEFT||keycode==Input.Keys.A){
-                    if(player.obj.getRotation()!=180){
-                        player.obj.setRotation(180);
-                        return false;
-
-                    }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
-                }
-                if(keycode==Input.Keys.DOWN||keycode==Input.Keys.S){
-                    if(player.obj.getRotation()!=-90){
-                        player.obj.setRotation(-90);
-                        return false;
-
-                    }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
-                }
 
 
                 return false;
@@ -400,10 +451,10 @@ public class GameScreen implements Screen {
 
 
 
-    private boolean checkCollision(float i, float j) {
+    public static boolean checkCollision(float i, float j) {
         int index = getCellIndex((int) j, (int) i);
 
-        print("position is : " + i+", "+j+", index is :"+index);
+//        print("position is : " + i+", "+j+", index is :"+index);
 
 //        print("is path : "+());
 
