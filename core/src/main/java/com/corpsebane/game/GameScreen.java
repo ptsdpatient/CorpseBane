@@ -65,7 +65,7 @@ public class GameScreen implements Screen {
 
         generateWorld();
 
-//        camera.zoom=0.25f;
+        camera.zoom=0.25f;
 
     }
 
@@ -197,13 +197,15 @@ public class GameScreen implements Screen {
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
-//            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
-//            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-//            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
+            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
+
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
-            if(!cell.isRoad&&!cell.isBorder) shapeRenderer.setColor(Color.RED);
+            if(!cell.isRoad&&!cell.isBorder) shapeRenderer.setColor(Color.PURPLE);
+
+            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
+            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
 
             shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
@@ -261,9 +263,9 @@ public class GameScreen implements Screen {
 
             @Override
             public boolean keyUp(int keycode) {
-//                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
-//                    findPath();
-//                }
+                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
+                    findPath();
+                }
                 if(keycode==Input.Keys.RIGHT||keycode==Input.Keys.D){
                     if(player.obj.getRotation()!=0){
                         player.obj.setRotation(0);
@@ -411,12 +413,12 @@ public class GameScreen implements Screen {
     }
 
 
-//    private void findPath() {
-//        Vector2 startCell=new Vector2(),endCell=new Vector2();
-//        for(GameCell cell : gameCells){
-//            if(cell.isStart)startCell=new Vector2(cell.i,cell.j);
-//            if(cell.isEnd)endCell=new Vector2(cell.i,cell.j);
-//        }
-//        print(""+pathFinder.findPath(startCell,endCell,5));
-//    }
+    private void findPath() {
+        Vector2 startCell=new Vector2(),endCell=new Vector2();
+        for(GameCell cell : gameCells){
+            if(cell.isStart)startCell=new Vector2(cell.i,cell.j);
+            if(cell.isEnd)endCell=new Vector2(cell.i,cell.j);
+        }
+        print(""+pathFinder.findPath(startCell,endCell,15));
+    }
 }

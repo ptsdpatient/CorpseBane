@@ -74,7 +74,7 @@ public class PathFinder {
             for(GameCell cell : gameCells){
                 if (Math.abs(cell.i - currentCell.x) <= 1 && Math.abs(cell.j - currentCell.y) <= 1) {
                     if (!(cell.i == currentCell.x && cell.j == currentCell.y)) {
-                        if(cell.isPath)calculateCell.add(cell);
+                        if(cell.isActive||cell.isRoad)calculateCell.add(cell);
                     }
                 }
             }
