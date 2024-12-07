@@ -1,5 +1,6 @@
 package com.corpsebane.game;
 
+import static com.corpsebane.game.GameScreen.COLS;
 import static com.corpsebane.game.GameScreen.gameCells;
 import static com.corpsebane.game.Methods.print;
 
@@ -25,7 +26,36 @@ public class PathFinder {
         };
         targetFound=false;
     }
+
+
+    public void connectDoor(Vector2 startPosition,Vector2 endPosition){
+        Vector2 currentCell = new Vector2(startPosition.x, startPosition.y);
+
+        while(currentCell.x!=endPosition.x&&currentCell.y!=endPosition.y){
+            while (currentCell.y != endPosition.y) {
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isRoad = true;
+                if (currentCell.y <= endPosition.y) {
+                    currentCell.y++;
+                } else {
+                    currentCell.y--;
+                }
+            }
+
+            while (currentCell.x != endPosition.x) {
+                gameCells[(int) (COLS * currentCell.y + currentCell.x)].isRoad = true;
+                if (currentCell.x <= endPosition.x) {
+                    currentCell.x++;
+                } else {
+                    currentCell.x--;
+                }
+            }
+        }
+
+    }
+
+
     public Array<Vector2> findPath(Vector2 startPosition,Vector2 endPosition,int distance){
+        print("finding path");
         initializeCell();
         selectedPath.add(startPosition);
         exploredPath.add(new GameCell((int) startPosition.x, (int) startPosition.y));
@@ -104,7 +134,6 @@ public class PathFinder {
             cell.hcost=0;
             cell.fcost=0;
             cell.gcost=0;
-
         }
     }
 

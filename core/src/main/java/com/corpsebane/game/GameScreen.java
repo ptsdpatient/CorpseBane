@@ -2,6 +2,7 @@ package com.corpsebane.game;
 import static com.corpsebane.game.Methods.load;
 import static com.corpsebane.game.Methods.print;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
@@ -14,8 +15,11 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -29,11 +33,12 @@ public class GameScreen implements Screen {
     boolean startSelected=false,endSelected=false;
     PathFinder pathFinder;
     public static OrthographicCamera camera;
-    public Vector2 screen;
+    public static Vector2 screen;
     public ShapeRenderer shapeRenderer;
     public Vector2 cellSize;
     public static GameCell[] gameCells;
     public Viewport viewport;
+    static int ROWS=22*2,COLS=40*2;
 
     public GameScreen(CorpseBane game){
         touch=new Vector3();
@@ -49,8 +54,8 @@ public class GameScreen implements Screen {
         shapeRenderer.setColor(Color.WHITE);
 
         cellSize=new Vector2();
-        cellSize.x = Gdx.graphics.getWidth() / 40f;
-        cellSize.y = Gdx.graphics.getHeight() / 22f;
+        cellSize.x = (float) Gdx.graphics.getWidth() / COLS;
+        cellSize.y = (float) Gdx.graphics.getHeight() / ROWS;
 
         initializeCells();
 
@@ -58,10 +63,89 @@ public class GameScreen implements Screen {
     }
 
     private void generateWorld() {
-        for(GameCell cell : gameCells){
+        int dungeonCount = MathUtils.random(5, 18);
+        Array<Dungeon> dungeons = new Array<>();
 
+        Rectangle gameRect = new Rectangle(0, 0, COLS, ROWS);
+        boolean touchingOtherRect;
+
+        for (int i = 0; i < dungeonCount; i++) {
+            Rectangle testRect = new Rectangle(MathUtils.random(0, COLS), MathUtils.random(0, ROWS), MathUtils.random(4, 15), MathUtils.random(4, 15));
+
+            while (true) {
+                touchingOtherRect = false;
+
+                for (Dungeon rect : dungeons) {
+                    if (testRect.overlaps(rect.dungeon)) {
+                        touchingOtherRect = true;
+                        break;
+                    }
+                }
+
+                if (!gameRect.contains(testRect) || touchingOtherRect) {
+                    testRect.set(MathUtils.random(0, COLS), MathUtils.random(0, ROWS), MathUtils.random(4, 15), MathUtils.random(4, 15));
+                } else {
+                    dungeons.add(new Dungeon(testRect));
+                    break;
+                }
+            }
         }
+
+        print("dungeon count is : " + dungeons.size);
+
+
+        for (Dungeon dungeon : dungeons) {
+            Rectangle rect = dungeon.dungeon;
+            int z= MathUtils.random(1,4);
+            for (int i = (int) rect.y; i < rect.y + rect.height; i++) {
+                for (int j = (int) rect.x; j < rect.x + rect.width; j++) {
+                    if (i == rect.y || i == rect.y + rect.height - 1 || j == rect.x || j == rect.x + rect.width - 1) {
+                        int index = getCellIndex(i, j);
+                        if (index >= 0 && index < gameCells.length) {
+                            boolean isCorner =
+                                (i == rect.y && j == rect.x) ||
+                                    (i == rect.y && j == rect.x + rect.width - 1) ||
+                                    (i == rect.y + rect.height - 1 && j == rect.x) ||
+                                    (i == rect.y + rect.height - 1 && j == rect.x + rect.width - 1);
+
+
+                            int randomDungeonIndex=MathUtils.random(0,dungeons.size-1);
+
+                            if(!isCorner&&z>0){
+                                if(!dungeons.get(randomDungeonIndex).isConnected){
+                                    print("connecting door ");
+                                    dungeon.isConnected=true;
+                                    pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.get(randomDungeonIndex).dungeon));
+                                    z--;
+                                }
+                            }
+                            gameCells[index].isBorder = true;
+                        }
+
+                    }else gameCells[getCellIndex(i, j)].isRoad=true;
+                }
+            }
+        }
+
+        for(Dungeon dungeon : dungeons){
+            if(!dungeon.isConnected){
+                print("dungeon not connected");
+            }
+        }
+
+
+
     }
+
+    private int getCellIndex(int i, int j) {
+        return i * COLS + j;
+    }
+    private Vector2 getRandomCellInRectangle(Rectangle rect) {
+        int randomX = MathUtils.random((int) rect.x+1, (int) (rect.x + rect.width - 2));
+        int randomY = MathUtils.random((int) rect.y+1, (int) (rect.y + rect.height - 2));
+        return new Vector2(randomX, randomY);
+    }
+
 
     private void setWindowed(){
         camera=new OrthographicCamera();
@@ -80,11 +164,11 @@ public class GameScreen implements Screen {
     }
 
     private void initializeCells() {
-        gameCells=new GameCell[880];
+        gameCells=new GameCell[ROWS*COLS];
         int index=0;
-        for (int row = 0; row < 22; row++) {
-            for (int col = 0; col < 40; col++) {
-                gameCells[index]=new GameCell(col,row);
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                gameCells[index]=new GameCell(col,row,index);
                 index++;
             }
         }
@@ -107,10 +191,12 @@ public class GameScreen implements Screen {
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
-            shapeRenderer.setColor(cell.isActive?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
+            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
             if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-            if(!cell.isPath)shapeRenderer.setColor(Color.LIGHT_GRAY);
             if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
+            if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
+
+            if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
 
             shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
@@ -118,9 +204,11 @@ public class GameScreen implements Screen {
         shapeRenderer.end();
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.DARK_GRAY);
+
         for(GameCell cell : gameCells){
-            shapeRenderer.setColor(Color.DARK_GRAY);
-            shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
+//            if(cell.isRoad||cell.isBorder)
+                shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
         shapeRenderer.end();
 
