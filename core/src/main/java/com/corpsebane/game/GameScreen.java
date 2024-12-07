@@ -26,7 +26,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 
 public class GameScreen implements Screen {
-    public Player player;
+    public static Player player;
     public CorpseBane game;
     public SpriteBatch batch;
     Vector3 touch;
@@ -41,9 +41,10 @@ public class GameScreen implements Screen {
     public static GameCell[] gameCells;
     public Viewport viewport;
     static int gridScale=2;
-    float playerSpeed= 0.375f,fireRate=1f;
+    float playerSpeed= 0.375f,fireRate=0.75f;
     static int ROWS=22*gridScale,COLS=40*gridScale;
     Array<Projectile> projectiles;
+    public static Array<Enemy> enemies;
 
     public GameScreen(CorpseBane game){
         touch=new Vector3();
@@ -54,6 +55,7 @@ public class GameScreen implements Screen {
         player = new Player("player");
 
         projectiles=new Array<>();
+        enemies=new Array<>();
         pathFinder=new PathFinder();
 
         setWindowed();
@@ -145,6 +147,7 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
+        for(int l=0;l<20;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellInRectangle(dungeons.random().dungeon),0));
 
     }
 
@@ -226,6 +229,11 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        for(Enemy enemy : enemies){
+            enemy.render(batch);
+            if(enemy.health<1)enemies.removeValue(enemy,true);
+        }
+
         for(Projectile projectile : projectiles){
             projectile.render(batch,delta);
             if(projectile.isDead)projectiles.removeValue(projectile,true);
@@ -236,7 +244,7 @@ public class GameScreen implements Screen {
         player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?1:0]);
 
         if(playerFireDelay>fireRate&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
-            print("fire");
+//            print("fire");
             handleFire();
         }else{
             playerFireDelay+=delta;
