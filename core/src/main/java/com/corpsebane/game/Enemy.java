@@ -2,6 +2,8 @@ package com.corpsebane.game;
 
 import static com.corpsebane.game.GameScreen.COLS;
 import static com.corpsebane.game.GameScreen.ROWS;
+import static com.corpsebane.game.GameScreen.gameCells;
+import static com.corpsebane.game.GameScreen.getCellIndex;
 import static com.corpsebane.game.GameScreen.screen;
 import static com.corpsebane.game.Methods.extractSprites;
 
@@ -56,6 +58,10 @@ public class Enemy {
     }
 
     public void render(SpriteBatch batch){
-        obj.draw(batch);
+        if(gameCells[getCellIndex((int) coordinates.y, (int) coordinates.x)].isPath){
+            obj.draw(batch);
+        }
     }
+
+
 }
