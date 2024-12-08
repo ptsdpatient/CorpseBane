@@ -41,12 +41,16 @@ public class GameScreen implements Screen {
     public static GameCell[] gameCells;
     public Viewport viewport;
     static int gridScale=2;
-    float playerSpeed= 0.375f,fireRate=0.75f;
+    float playerSpeed= 0.375f,fireRate=0.55f;
     static int ROWS=22*gridScale,COLS=40*gridScale;
     Array<Projectile> projectiles;
     public static Array<Enemy> enemies;
+    public static Array<NPC> peoples;
     Array<Dungeon> dungeons;
-    public int randomX=0,randomY=0;
+    static Rectangle gameRect;
+
+    public static int randomX=0;
+    public static int randomY=0;
 
     float lightRevealTimer = 0;
     float revealDelay = 0.2f;
@@ -63,7 +67,9 @@ public class GameScreen implements Screen {
         projectiles=new Array<>();
         enemies=new Array<>();
         dungeons = new Array<>();
+        peoples = new Array<>();
         pathFinder=new PathFinder();
+        gameRect = new Rectangle(0, 0, COLS, ROWS);
 
         setWindowed();
 
@@ -86,7 +92,6 @@ public class GameScreen implements Screen {
         int dungeonCount = MathUtils.random(4, gridScale*6);
 
 
-        Rectangle gameRect = new Rectangle(0, 0, COLS, ROWS);
         boolean touchingOtherRect;
 
         for (int i = 0; i < dungeonCount; i++) {
@@ -154,7 +159,8 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<20;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellInRectangle(dungeons.random().dungeon),0));
+        for(int l=0;l<20;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
+        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -162,7 +168,17 @@ public class GameScreen implements Screen {
         return i * COLS + j;
     }
 
-    private Vector2 getRandomCellInRectangle(Rectangle rect) {
+    public static Vector2 getRandomCellPath(){
+        Vector2 randomPoint;
+        while(true){
+            randomPoint=getRandomCellInRectangle(gameRect);
+            if(gameCells[getCellIndex((int) randomPoint.y, (int) randomPoint.x)].isRoad &&!gameCells[getCellIndex((int) randomPoint.y, (int) randomPoint.x)].isBorder){
+                return randomPoint;
+            }
+        }
+    }
+
+    public static Vector2 getRandomCellInRectangle(Rectangle rect) {
         randomX = MathUtils.random((int) rect.x+1, (int) (rect.x + rect.width - 2));
         randomY = MathUtils.random((int) rect.y+1, (int) (rect.y + rect.height - 2));
         return new Vector2(randomX, randomY);
@@ -222,6 +238,7 @@ public class GameScreen implements Screen {
 
             if(cell.isEnd)shapeRenderer.setColor(Color.RED);
             if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
+
             if(cell.isPath)shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
 
@@ -239,14 +256,20 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        for(NPC npc : peoples){
+            npc.render(batch);
+            if(npc.health<1)peoples.removeValue(npc,true);
+
+        }
+
         for(Enemy enemy : enemies){
             enemy.render(batch);
             if(enemy.health<1)enemies.removeValue(enemy,true);
         }
 
         for(Projectile projectile : projectiles){
-            projectile.render(batch,delta);
             if(projectile.isDead)projectiles.removeValue(projectile,true);
+            projectile.render(batch,delta);
         }
 
         player.render(batch);
@@ -329,7 +352,6 @@ public class GameScreen implements Screen {
     private void controlPlayer() {
 
         playerSpeed= (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT))? (float) (0.375 / 2.5f) :0.375f;
-
         if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)||Gdx.input.isKeyPressed(Input.Keys.D)){
             playerControlDelay=0f;
 

@@ -4,6 +4,7 @@ import static com.corpsebane.game.GameScreen.COLS;
 import static com.corpsebane.game.GameScreen.ROWS;
 import static com.corpsebane.game.GameScreen.checkCollision;
 import static com.corpsebane.game.GameScreen.enemies;
+import static com.corpsebane.game.GameScreen.peoples;
 import static com.corpsebane.game.GameScreen.player;
 import static com.corpsebane.game.GameScreen.screen;
 import static com.corpsebane.game.Methods.print;
@@ -45,6 +46,15 @@ public class Projectile {
     }
     public void render(SpriteBatch batch, float delta){
         obj.draw(batch);
+
+
+        for(NPC npc : peoples){
+            if (npc.coordinates.x == coordinates.x &&npc.coordinates.y == coordinates.y ) {
+                isDead = true;
+                npc.health-= MathUtils.random(0,3);
+                break;
+            }
+        }
         for(Enemy enemy : enemies){
             if (enemy.coordinates.x == coordinates.x &&enemy.coordinates.y == coordinates.y ) {
                 isDead = true;
