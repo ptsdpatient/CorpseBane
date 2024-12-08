@@ -164,8 +164,8 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<10;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
-        peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+        for(int l=0;l<1;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
+        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -270,7 +270,7 @@ public class GameScreen implements Screen {
         }
 
         for(Enemy enemy : enemies){
-            enemy.render(batch);
+            enemy.render(batch,delta);
             if(enemy.health<1)enemies.removeValue(enemy,true);
         }
 

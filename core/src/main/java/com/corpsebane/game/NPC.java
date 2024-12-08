@@ -28,10 +28,10 @@ public class NPC {
     public boolean hasSafePath=false;
     public Array<Vector2> path;
     enum NPCSTATE{
-        IDLE,SNEAKING,RUNNING
+        IDLE,SNEAKING
     }
 
-    public NPCSTATE state=NPCSTATE.IDLE;
+    NPCSTATE state=NPCSTATE.IDLE;
 
     public NPC(boolean child,Vector2 position,float direction){
         this.sheet=extractSprites("npc_sheet.png",32,32);
@@ -48,7 +48,7 @@ public class NPC {
     }
 
     public void setPosition(Vector2 position){
-        print("moved to : "+position );
+//        print("moved to : "+position );
         coordinates=position;
         obj.setPosition(position.x*size.x,position.y*size.y);
     }
@@ -66,9 +66,9 @@ public class NPC {
             while(!hasSafePath){
                 tries++;
                 Vector2 randomPoint= getRandomCellPath();
-                if(isNearby(coordinates,randomPoint,14)){
+                if(isNearby(coordinates,randomPoint,20)){
                     for(Enemy enemy : enemies){
-                        if(!isNearby(enemy.coordinates,randomPoint,8)){
+                        if(!isNearby(enemy.coordinates,randomPoint,12)){
                             hasSafePath=true;
                             print("coordinates are : "+coordinates+" , "+randomPoint);
                             path=pathFinder.findPath(coordinates,randomPoint,10);
@@ -87,6 +87,7 @@ public class NPC {
             setPosition(path.peek());
             path.pop();
             moveDelay=0f;
+                if(path.size<1)state=NPCSTATE.IDLE;
             }else moveDelay+=delta;
 
         }
