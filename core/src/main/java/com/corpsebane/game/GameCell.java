@@ -12,7 +12,7 @@ import com.badlogic.gdx.math.Vector2;
 public class GameCell {
     int id=0;
     int i,j;
-    boolean isRoad=false,isBorder=false,isActive=false,isHovered=false,isStart=false,isEnd=false,isPath=false,isExplored=false;
+    boolean isSelected=false,isRoad=false,isBorder=false,isActive=false,isHovered=false,isStart=false,isEnd=false,isPath=false,isExplored=false;
     Vector2 cellSize;
     float hcost=0,fcost=0,gcost=0;
     public GameCell(int i,int j,int id){

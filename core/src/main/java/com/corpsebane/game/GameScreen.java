@@ -33,7 +33,7 @@ public class GameScreen implements Screen {
     Vector2 point;
     float playerControlDelay=0f,playerFireDelay=0f;
     boolean startSelected=false,endSelected=false;
-    PathFinder pathFinder;
+    public static PathFinder pathFinder;
     public static OrthographicCamera camera;
     public static Vector2 screen=new Vector2(1280/2f,720/2f);
     public ShapeRenderer shapeRenderer;
@@ -84,9 +84,14 @@ public class GameScreen implements Screen {
 
         generateWorld();
 
-        camera.zoom=0.2f;
+//        camera.zoom=0.2f;
 
     }
+
+    public static boolean isNearby(Vector2 position1, Vector2 position2, float radius) {
+        return position1.dst(position2) <= radius;
+    }
+
 
     private void generateWorld() {
         int dungeonCount = MathUtils.random(4, gridScale*6);
@@ -138,7 +143,7 @@ public class GameScreen implements Screen {
 
                             if(!isCorner&&z>0){
                                 if(!dungeons.get(randomDungeonIndex).isConnected){
-                                    print("connecting door ");
+//                                    print("connecting door ");
                                     dungeon.isConnected=true;
                                     pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.get(randomDungeonIndex).dungeon));
                                     z--;
@@ -159,8 +164,8 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<20;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
-        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+        for(int l=0;l<10;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
+        peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -223,23 +228,25 @@ public class GameScreen implements Screen {
 
         revealPath();
 
-//        camera.position.set(screen.x/2f,screen.y/2f,0);
-        camera.position.set(player.obj.getX()+player.playerSize.x/2f,player.obj.getY()+player.playerSize.y/2f,0);
+        camera.position.set(screen.x/2f,screen.y/2f,0);
+
+//        camera.position.set(player.obj.getX()+player.playerSize.x/2f,player.obj.getY()+player.playerSize.y/2f,0);
         camera.update();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
-            shapeRenderer.setColor(cell.isRoad?Color.CYAN:(cell.isHovered)?Color.GRAY:Color.BLACK);
+
+
+            shapeRenderer.setColor(Color.BLACK);
+            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
+            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
 
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
-
-            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
-
-            if(cell.isPath)shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
+//            if(cell.isPath)
+            shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
 
         shapeRenderer.end();
@@ -257,7 +264,7 @@ public class GameScreen implements Screen {
         batch.begin();
 
         for(NPC npc : peoples){
-            npc.render(batch);
+            npc.render(batch,delta);
             if(npc.health<1)peoples.removeValue(npc,true);
 
         }
@@ -452,50 +459,36 @@ public class GameScreen implements Screen {
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
 
-//                for(GameCell cell : gameCells){
-//                    if(cell.isTouching(point)){
-//                        print("selected cell cell: (" + cell.i + ", " + cell.j + ")");
-//                        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
-//                            if(startSelected && cell.isStart){
-//                                startSelected=false;
-//                                cell.isStart=false;
-//                            }else if(!startSelected && !cell.isStart){
-//                                startSelected=true;
-//                                cell.isStart=true;
-//                            }
-//                        }
-//                        if(Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)){
-//                            if(endSelected && cell.isEnd){
-//                                endSelected=false;
-//                                cell.isEnd=false;
-//                            }else if(!endSelected && !cell.isEnd){
-//                                endSelected=true;
-//                                cell.isEnd=true;
-//                            }
-//                        }
-//
-//                        if(!cell.isStart&&!cell.isEnd){
-//                            if(button==Input.Buttons.RIGHT){
-//                                if(cell.isPath){
-////                                    cell.isPath=false;
-//                                    print("this cell is not path");
-////                                    cell.isActive=false;
-//                                }
-//                            }
-//
-//                            if(button==Input.Buttons.LEFT){
-//                                if(!cell.isActive&&cell.isPath){
-////                                    cell.isActive=true;
-//                                }
-//                            }
-//                        }
-//
-//
-//                    }
-//
-//
-//
-//                }
+                for(GameCell cell : gameCells){
+                    if(cell.isTouching(point)){
+                        print("selected cell cell: (" + cell.i + ", " + cell.j + ")");
+                        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
+                            if(startSelected && cell.isStart){
+                                startSelected=false;
+                                cell.isStart=false;
+                            }else if(!startSelected && !cell.isStart){
+                                startSelected=true;
+                                cell.isStart=true;
+                            }
+                        }
+                        if(Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)){
+                            if(endSelected && cell.isEnd){
+                                endSelected=false;
+                                cell.isEnd=false;
+                            }else if(!endSelected && !cell.isEnd){
+                                endSelected=true;
+                                cell.isEnd=true;
+                            }
+                        }
+
+
+
+
+                    }
+
+
+
+                }
                 return false;
             }
 
@@ -544,10 +537,7 @@ public class GameScreen implements Screen {
 
     public static boolean checkCollision(float i, float j) {
         int index = getCellIndex((int) j, (int) i);
-
-        boolean collision = !gameCells[index].isBorder&&gameCells[index].isRoad ||gameCells[index].isActive;
-
-        return collision;
+        return !gameCells[index].isBorder&&gameCells[index].isRoad || gameCells[index].isActive;
     }
 
 

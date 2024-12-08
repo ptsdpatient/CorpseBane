@@ -61,7 +61,8 @@ public class PathFinder {
 
 
     public Array<Vector2> findPath(Vector2 startPosition,Vector2 endPosition,int distance){
-        print("finding path");
+        print("finding safe path");
+
         initializeCell();
         selectedPath.add(startPosition);
         exploredPath.add(new GameCell((int) startPosition.x, (int) startPosition.y));
@@ -70,11 +71,10 @@ public class PathFinder {
         int index=0;
         while(!targetFound){
             index++;
-
             for(GameCell cell : gameCells){
                 if (Math.abs(cell.i - currentCell.x) <= 1 && Math.abs(cell.j - currentCell.y) <= 1) {
                     if (!(cell.i == currentCell.x && cell.j == currentCell.y)) {
-                        if(cell.isActive||cell.isRoad)calculateCell.add(cell);
+                        if(cell.isRoad)calculateCell.add(cell);
                     }
                 }
             }
@@ -84,15 +84,21 @@ public class PathFinder {
             if((currentCell.x==endPosition.x && currentCell.y==endPosition.y)||index>distance)
             {
                 targetFound=true;
+                print("found safe path");
                 for(GameCell cell : exploredPath){
-                    if(cell.isExplored&&cell.isPath){
+                    if(cell.isExplored&&cell.isRoad){
                         selectedPath.add(new Vector2(cell.i,cell.j));
                     }
                 }
+                print("path size : "+selectedPath.size);
                 for(GameCell cell : gameCells){
                     cell.hcost=0;
                     cell.fcost=0;
                     cell.gcost=0;
+                    cell.isSelected=false;
+                    cell.isExplored=false;
+
+
 //                    uncomment these for not debugging
 
 //                    cell.isActive=false;
@@ -104,6 +110,7 @@ public class PathFinder {
                 }
             }
         }
+        targetFound=false;
         return selectedPath;
     }
 
@@ -113,7 +120,7 @@ public class PathFinder {
             cell.gcost = (float) Math.sqrt(Math.pow(cell.i - currentCell.x, 2) + Math.pow(cell.j - currentCell.y, 2));
             cell.hcost = (float) Math.sqrt(Math.pow(cell.i - endPosition.x, 2) + Math.pow(cell.j - endPosition.y, 2));
             cell.fcost = cell.gcost + cell.hcost;
-            cell.isActive=true;
+            cell.isSelected=true;
         }
 
         exploredPath.addAll(calculateCell);
@@ -140,6 +147,8 @@ public class PathFinder {
             cell.hcost=0;
             cell.fcost=0;
             cell.gcost=0;
+            cell.isSelected=false;
+            cell.isExplored=false;
         }
     }
 

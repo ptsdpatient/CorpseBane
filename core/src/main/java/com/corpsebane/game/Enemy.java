@@ -19,7 +19,10 @@ public class Enemy {
     public TextureRegion[] sheet;
     public Vector2 size,coordinates;
     public float damage=0,health=0,armor=0,speed=0;
-
+    enum MOBSTATE{
+        IDLE,PATROLING,CHASING
+    }
+    MOBSTATE state = MOBSTATE.IDLE;
     public Enemy(int type,Vector2 position,float direction){
         this.sheet=extractSprites("mob_sheet.png",32,32);
         this.obj=new Sprite(sheet[type]);
@@ -58,9 +61,9 @@ public class Enemy {
     }
 
     public void render(SpriteBatch batch){
-        if(gameCells[getCellIndex((int) coordinates.y, (int) coordinates.x)].isPath){
+//        if(gameCells[getCellIndex((int) coordinates.y, (int) coordinates.x)].isPath)
             obj.draw(batch);
-        }
+
     }
 
 
