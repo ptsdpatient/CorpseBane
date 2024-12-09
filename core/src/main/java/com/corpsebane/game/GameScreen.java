@@ -47,6 +47,8 @@ public class GameScreen implements Screen {
     public static Array<Enemy> enemies;
     public static Array<NPC> peoples;
     public static Array<Puddle> puddles;
+    public static Array<Merc> mercenaries;
+    public boolean rifle =false;
     Array<Dungeon> dungeons;
     static Rectangle gameRect;
 
@@ -70,7 +72,9 @@ public class GameScreen implements Screen {
         dungeons = new Array<>();
         peoples = new Array<>();
         puddles=new Array<>();
+        mercenaries=new Array<>();
         pathFinder=new PathFinder();
+
         gameRect = new Rectangle(0, 0, COLS, ROWS);
 
         setWindowed();
@@ -166,8 +170,9 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<4;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
-        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+        for(int l=0;l<4;l++)enemies.add(new Enemy(MathUtils.random(0,5),getRandomCellPath(),0));
+        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),0));
+        for(int l=0;l<5;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -239,18 +244,16 @@ public class GameScreen implements Screen {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
 
-
             shapeRenderer.setColor(Color.BLACK);
             if(cell.isEnd)shapeRenderer.setColor(Color.RED);
             if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
-
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
-
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
 
-
-//          if(cell.isPath)
+//          if(cell.isPath){
             shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
+//          }
+
         }
 
         shapeRenderer.end();
@@ -268,38 +271,52 @@ public class GameScreen implements Screen {
         batch.begin();
 
         for(Puddle puddle : puddles){
-            puddle.render(batch);
+//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+                puddle.render(batch);
+//            }
         }
 
         for(NPC npc : peoples){
-            npc.render(batch,delta);
-            if(npc.health<1){
-                puddles.add(new Puddle(0,new Vector2(npc.coordinates)));
-                peoples.removeValue(npc,true);
+//            if(gameCells[getCellIndex((int) npc.coordinates.y, (int) npc.coordinates.x)].isPath){
+                npc.render(batch,delta);
+                if(npc.health<1){
+                    puddles.add(new Puddle(0,new Vector2(npc.coordinates)));
+                    peoples.removeValue(npc,true);
+//                }
             }
 
+        }
+
+        for(Merc merc : mercenaries){
+            merc.render(batch,delta);
         }
 
         for(Enemy enemy : enemies){
-            enemy.render(batch,delta);
-            if(enemy.health<1){
-                puddles.add(new Puddle(1,new Vector2(enemy.coordinates)));
-                enemies.removeValue(enemy,true);
-            }
+//            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
+                enemy.render(batch,delta);
+                if(enemy.health<1){
+                    puddles.add(new Puddle(1,new Vector2(enemy.coordinates)));
+                    enemies.removeValue(enemy,true);
+                }
+//            }
         }
 
+
+
         for(Projectile projectile : projectiles){
+
+            projectile.render(batch,delta);
             if(projectile.isDead){
                 projectiles.removeValue(projectile,true);
             }
-            projectile.render(batch,delta);
+
         }
 
         player.render(batch);
 
-        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?1:0]);
+        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?rifle?3:1:0]);
 
-        if(playerFireDelay>fireRate&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
+        if(playerFireDelay>(rifle?0.2f:0.55f)&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
             handleFire();
         }else{
             playerFireDelay+=delta;
@@ -367,7 +384,7 @@ public class GameScreen implements Screen {
     private void handleFire() {
         if(Gdx.input.isKeyPressed(Input.Keys.Z)||Gdx.input.isKeyPressed(Input.Buttons.LEFT)) {
 //            print("fire");
-            projectiles.add(new Projectile(player.playerSheet[3], player.coordinates, player.obj.getRotation()));
+            projectiles.add(new Projectile(player.playerSheet[rifle?4:2], player.coordinates, player.obj.getRotation()));
             playerFireDelay = 0f;
         }
     }
@@ -450,14 +467,18 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(new InputProcessor() {
             @Override
             public boolean keyDown(int keycode) {
+                if(keycode==Input.Keys.X){
+                    rifle=!rifle;
+                }
+
                 return false;
             }
 
             @Override
             public boolean keyUp(int keycode) {
-                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
-                    findPath();
-                }
+//                if(keycode==Input.Keys.SPACE && startSelected && endSelected){
+//                    findPath();
+//                }
 
 
 

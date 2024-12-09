@@ -27,7 +27,7 @@ public class Enemy {
     public int type;
     public TextureRegion[] sheet;
     public Vector2 size,coordinates;
-    public float damage=0,health=0,armor=0,speed=0;
+    public float damage=0,health=10,armor=10,speed=0;
     public boolean hasChasePath=false;
     float moveDelay=0.5f;
     private int patrolIndex = 0;

@@ -4,6 +4,8 @@ import static com.corpsebane.game.GameScreen.COLS;
 import static com.corpsebane.game.GameScreen.ROWS;
 import static com.corpsebane.game.GameScreen.checkCollision;
 import static com.corpsebane.game.GameScreen.enemies;
+import static com.corpsebane.game.GameScreen.gameCells;
+import static com.corpsebane.game.GameScreen.getCellIndex;
 import static com.corpsebane.game.GameScreen.peoples;
 import static com.corpsebane.game.GameScreen.player;
 import static com.corpsebane.game.GameScreen.screen;
@@ -45,8 +47,9 @@ public class Projectile {
         }
     }
     public void render(SpriteBatch batch, float delta){
-        obj.draw(batch);
-
+        if(gameCells[getCellIndex((int) coordinates.y, (int) coordinates.x)].isPath){
+            obj.draw(batch);
+        }
 
         for(NPC npc : peoples){
             if (npc.coordinates.x == coordinates.x &&npc.coordinates.y == coordinates.y ) {
