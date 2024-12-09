@@ -46,6 +46,7 @@ public class GameScreen implements Screen {
     Array<Projectile> projectiles;
     public static Array<Enemy> enemies;
     public static Array<NPC> peoples;
+    public static Array<Puddle> puddles;
     Array<Dungeon> dungeons;
     static Rectangle gameRect;
 
@@ -68,6 +69,7 @@ public class GameScreen implements Screen {
         enemies=new Array<>();
         dungeons = new Array<>();
         peoples = new Array<>();
+        puddles=new Array<>();
         pathFinder=new PathFinder();
         gameRect = new Rectangle(0, 0, COLS, ROWS);
 
@@ -164,8 +166,8 @@ public class GameScreen implements Screen {
         }
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<1;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
-//        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+        for(int l=0;l<4;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
+        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -265,19 +267,31 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        for(Puddle puddle : puddles){
+            puddle.render(batch);
+        }
+
         for(NPC npc : peoples){
             npc.render(batch,delta);
-            if(npc.health<1)peoples.removeValue(npc,true);
+            if(npc.health<1){
+                puddles.add(new Puddle(0,new Vector2(npc.coordinates)));
+                peoples.removeValue(npc,true);
+            }
 
         }
 
         for(Enemy enemy : enemies){
             enemy.render(batch,delta);
-            if(enemy.health<1)enemies.removeValue(enemy,true);
+            if(enemy.health<1){
+                puddles.add(new Puddle(1,new Vector2(enemy.coordinates)));
+                enemies.removeValue(enemy,true);
+            }
         }
 
         for(Projectile projectile : projectiles){
-            if(projectile.isDead)projectiles.removeValue(projectile,true);
+            if(projectile.isDead){
+                projectiles.removeValue(projectile,true);
+            }
             projectile.render(batch,delta);
         }
 

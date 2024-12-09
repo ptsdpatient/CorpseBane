@@ -55,13 +55,7 @@ public class NPC {
 
     public void render(SpriteBatch batch,float delta){
 
-        for(Enemy enemy : enemies){
-            if (isNearby(coordinates, enemy.coordinates, 1)) {
-//                print("dying");
-                health-=0.2f;
-                break;
-            }
-        }
+
 
         if(state==NPCSTATE.IDLE) {
             for (Enemy enemy : enemies) {
@@ -74,7 +68,7 @@ public class NPC {
         }
         if(state==NPCSTATE.SNEAKING&&!hasSafePath){
             tries=0;
-            while(!hasSafePath || tries>30){
+            while(!hasSafePath || tries<30){
                 tries++;
                 Vector2 randomPoint= getRandomCellPath();
                 if(isNearby(coordinates,randomPoint,6)){
@@ -84,23 +78,30 @@ public class NPC {
                             path=pathFinder.findPath(coordinates,randomPoint,10);
                             break;
                         }
-//                        else print("enemy nearby");
                     }
                 }
             }
         } else if (path.size>1) {
             if(moveDelay>speed){
+                for(Enemy enemy : enemies){
+                    if (isNearby(coordinates, enemy.coordinates, 1)) {
+                        health-=1f;
+                        break;
+                    }
+                }
                 setPosition(path.peek());
                 path.pop();
                 moveDelay=0f;
                 if(path.size<=1){
                     state=NPCSTATE.IDLE;
-//                    print("idle");
                     hasSafePath=false;
                 }
             }else moveDelay+=delta;
 
         }
+
+
+
 //        if(gameCells[getCellIndex((int) coordinates.y, (int) coordinates.x)].isPath)
             obj.draw(batch);
 
