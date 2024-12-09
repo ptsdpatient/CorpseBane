@@ -105,20 +105,17 @@ public class Enemy {
                 hasChasePath=true;
             }
             if(state == MOBSTATE.IDLE && !hasChasePath){
-                print("patroling");
                 randomCoordinates=getRandomCellPath();
                 if(!isNearby(coordinates,randomCoordinates,MathUtils.random(6,12))){
                     patrolPath=new Array<>();
                     patrolPath=pathFinder.findPath(coordinates,randomCoordinates,MathUtils.random(6,12));
                     patrolPath.reverse();
                     patrolPath.pop();
-                    print("old patrol path : "+coordinates+" \n"+patrolPath+" ");
                     Array<Vector2> reversePath = new Array<>(patrolPath);
                     reversePath.pop();
                     reversePath.reverse();
                     patrolPath.addAll(reversePath);
                     patrolIndex = 0;
-                    print("new patrol path : " + patrolPath);
                     state = MOBSTATE.PATROLLING;
                 }
             }
@@ -139,7 +136,6 @@ public class Enemy {
 
 
         if(state==MOBSTATE.CHASING&&path.size>1){
-//            print("it should be chasing! ");
             if(moveDelay>speed){
                 setPosition(path.peek());
                 path.pop();

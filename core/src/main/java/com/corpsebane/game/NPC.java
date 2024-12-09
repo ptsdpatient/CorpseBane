@@ -74,7 +74,7 @@ public class NPC {
         }
         if(state==NPCSTATE.SNEAKING&&!hasSafePath){
             tries=0;
-            while(!hasSafePath){
+            while(!hasSafePath || tries>30){
                 tries++;
                 Vector2 randomPoint= getRandomCellPath();
                 if(isNearby(coordinates,randomPoint,6)){
