@@ -165,7 +165,7 @@ public class GameScreen implements Screen {
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
         for(int l=0;l<1;l++)enemies.add(new Enemy(MathUtils.random(0,3),getRandomCellPath(),0));
-        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+//        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,1)==0,getRandomCellPath(),0));
 
     }
 
@@ -245,7 +245,9 @@ public class GameScreen implements Screen {
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
-//            if(cell.isPath)
+
+
+//          if(cell.isPath)
             shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
         }
 

@@ -54,10 +54,21 @@ public class NPC {
     }
 
     public void render(SpriteBatch batch,float delta){
+
+        for(Enemy enemy : enemies){
+            if (isNearby(coordinates, enemy.coordinates, 1)) {
+//                print("dying");
+                health-=0.2f;
+                break;
+            }
+        }
+
         if(state==NPCSTATE.IDLE) {
             for (Enemy enemy : enemies) {
-                if (isNearby(coordinates, enemy.coordinates, 10)) {
+                if (isNearby(coordinates, enemy.coordinates, 15)) {
                     state = NPCSTATE.SNEAKING;
+                    hasSafePath=false;
+                    break;
                 }
             }
         }
@@ -66,28 +77,27 @@ public class NPC {
             while(!hasSafePath){
                 tries++;
                 Vector2 randomPoint= getRandomCellPath();
-                if(isNearby(coordinates,randomPoint,20)){
+                if(isNearby(coordinates,randomPoint,6)){
                     for(Enemy enemy : enemies){
-                        if(!isNearby(enemy.coordinates,randomPoint,12)){
+                        if(!isNearby(enemy.coordinates,randomPoint,5)){
                             hasSafePath=true;
-                            print("coordinates are : "+coordinates+" , "+randomPoint);
                             path=pathFinder.findPath(coordinates,randomPoint,10);
                             break;
-                        }else print("enemy nearby");
+                        }
+//                        else print("enemy nearby");
                     }
                 }
             }
-        }else if(path.size>1){
-
+        } else if (path.size>1) {
             if(moveDelay>speed){
-//                print(path.size);
-
-//                setPosition(path.get(0));
-//                path.removeIndex(0);
-            setPosition(path.peek());
-            path.pop();
-            moveDelay=0f;
-                if(path.size<1)state=NPCSTATE.IDLE;
+                setPosition(path.peek());
+                path.pop();
+                moveDelay=0f;
+                if(path.size<=1){
+                    state=NPCSTATE.IDLE;
+//                    print("idle");
+                    hasSafePath=false;
+                }
             }else moveDelay+=delta;
 
         }

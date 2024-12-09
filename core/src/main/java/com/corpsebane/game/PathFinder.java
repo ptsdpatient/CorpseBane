@@ -61,7 +61,7 @@ public class PathFinder {
 
 
     public Array<Vector2> findPath(Vector2 startPosition,Vector2 endPosition,int distance){
-        print("finding safe path");
+//        print("finding safe path");
 
         initializeCell();
         selectedPath.add(startPosition);
@@ -84,13 +84,13 @@ public class PathFinder {
             if((currentCell.x==endPosition.x && currentCell.y==endPosition.y)||index>distance)
             {
                 targetFound=true;
-                print("found safe path");
+//                print("found safe path");
                 for(GameCell cell : exploredPath){
                     if(cell.isExplored&&cell.isRoad){
                         selectedPath.add(new Vector2(cell.i,cell.j));
                     }
                 }
-                print("path size : "+selectedPath.size);
+//                print("path size : "+selectedPath.size);
                 for(GameCell cell : gameCells){
                     cell.hcost=0;
                     cell.fcost=0;

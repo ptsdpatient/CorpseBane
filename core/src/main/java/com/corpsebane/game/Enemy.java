@@ -12,6 +12,7 @@ import static com.corpsebane.game.GameScreen.peoples;
 import static com.corpsebane.game.GameScreen.player;
 import static com.corpsebane.game.GameScreen.screen;
 import static com.corpsebane.game.Methods.extractSprites;
+import static com.corpsebane.game.Methods.load;
 import static com.corpsebane.game.Methods.print;
 
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -36,7 +37,7 @@ public class Enemy {
     Vector2 randomCoordinates,target;
 
     enum MOBSTATE{
-        IDLE,PATROLING,CHASING
+        IDLE,PATROLLING,CHASING
     }
 
     MOBSTATE state = MOBSTATE.IDLE;
@@ -77,83 +78,102 @@ public class Enemy {
                 speed=MathUtils.random(1,2);
             }break;
         }
-        speed=0.25f;
+        speed=0.45f;
     }
 
     public void setPosition(Vector2 position){
-        print("moved to : "+position );
         coordinates=position;
         obj.setPosition(position.x*size.x,position.y*size.y);
     }
 
     public void render(SpriteBatch batch,float delta){
 
-        print(""+state);
-
-        if(state!=MOBSTATE.CHASING&&!hasChasePath&&(state== MOBSTATE.IDLE||state==MOBSTATE.PATROLING)) {
+//        print(""+state);
+//        coordinates=new Vector2(obj.getX()/size.x,obj.getY()/size.y);
+        if(state== MOBSTATE.IDLE||state==MOBSTATE.PATROLLING) {
+//            print("is idle");
             for (NPC npc : peoples) {
                 if (isNearby(coordinates, npc.coordinates, 5)) {
-//                    state = MOBSTATE.CHASING;
-                    path=pathFinder.findPath(coordinates,npc.coordinates,5);
+                    state = MOBSTATE.CHASING;
+                    path=pathFinder.findPath(coordinates,npc.coordinates,10);
                     hasChasePath=true;
                 }
             }
             if(isNearby(coordinates, player.coordinates,5)){
-//                state = MOBSTATE.CHASING;
-                path=pathFinder.findPath(coordinates,player.coordinates,5);
+                state = MOBSTATE.CHASING;
+                path=pathFinder.findPath(coordinates,player.coordinates,10);
                 hasChasePath=true;
             }
             if(state == MOBSTATE.IDLE && !hasChasePath){
+                print("patroling");
                 randomCoordinates=getRandomCellPath();
-                if(isNearby(coordinates,randomCoordinates,MathUtils.random(5,16))){
-                    patrolPath=pathFinder.findPath(coordinates,randomCoordinates,MathUtils.random(5,16));
-                    state=MOBSTATE.PATROLING;
+                if(!isNearby(coordinates,randomCoordinates,MathUtils.random(6,12))){
+                    patrolPath=new Array<>();
+                    patrolPath=pathFinder.findPath(coordinates,randomCoordinates,MathUtils.random(6,12));
+                    patrolPath.reverse();
+                    patrolPath.pop();
+                    print("old patrol path : "+coordinates+" \n"+patrolPath+" ");
+                    Array<Vector2> reversePath = new Array<>(patrolPath);
+                    reversePath.pop();
+                    reversePath.reverse();
+                    patrolPath.addAll(reversePath);
+                    patrolIndex = 0;
+                    print("new patrol path : " + patrolPath);
+                    state = MOBSTATE.PATROLLING;
                 }
             }
         }
 
-        if(state==MOBSTATE.PATROLING&&patrolPath.size>1){
-            print("patroling");
-            target = patrolPath.get(patrolIndex);
-
+        if(state==MOBSTATE.PATROLLING){
             if(moveDelay>speed){
-                setPosition(target);
-                moveDelay=0f;
-            }else moveDelay+=delta;
-
-
-            if (coordinates.dst(target) < 0.1f) {
-                if (forward) {
-                    patrolIndex++;
-                    if (patrolIndex >= patrolPath.size) {
-                        patrolIndex = patrolPath.size - 2;
-                        forward = false;
-                    }
-                } else {
-                    patrolIndex--;
-                    if (patrolIndex < 0) {
-                        patrolIndex = 1;
-                        forward = true;
-                    }
+                if(patrolIndex>patrolPath.size-1){
+                    patrolIndex=0;
                 }
-            }
-
+                print(patrolIndex+" , "+coordinates);
+                setPosition(patrolPath.get(patrolIndex));
+                moveDelay=0f;
+                patrolIndex++;
+            }else moveDelay+=delta;
         }
 
-        if(state==MOBSTATE.CHASING&&hasChasePath&&path.size>1){
-            print("it should be chasing! ");
+
+
+        if(state==MOBSTATE.CHASING&&path.size>1){
+//            print("it should be chasing! ");
             if(moveDelay>speed){
                 setPosition(path.peek());
                 path.pop();
                 moveDelay=0f;
-
+                if(path.size<=1){
+                    for (NPC npc : peoples) {
+                        if (isNearby(coordinates, npc.coordinates, 8)) {
+                            state = MOBSTATE.CHASING;
+                            path=pathFinder.findPath(coordinates,npc.coordinates,10);
+                            hasChasePath=true;
+                        }
+                    }
+                    if(isNearby(coordinates, player.coordinates,8)){
+                        state = MOBSTATE.CHASING;
+                        path=pathFinder.findPath(coordinates,player.coordinates,10);
+                        hasChasePath=true;
+                    }
+                    if(state == MOBSTATE.IDLE && !hasChasePath){
+                        randomCoordinates=getRandomCellPath();
+                        if(!isNearby(coordinates,randomCoordinates,MathUtils.random(5,16))){
+                            patrolPath=pathFinder.findPath(coordinates,randomCoordinates,MathUtils.random(5,16));
+                            Array<Vector2> reversePath=patrolPath;
+                            reversePath.reverse();
+                            patrolPath.addAll(reversePath);
+                            state=MOBSTATE.PATROLLING;
+                        }
+                    }
+                }
             }else moveDelay+=delta;
         }
-        if(state==MOBSTATE.CHASING&&path.size<1){
 
+        if(state==MOBSTATE.CHASING&&path.size<=1){
             state= MOBSTATE.IDLE;
             hasChasePath=false;
-
         }
 
 
