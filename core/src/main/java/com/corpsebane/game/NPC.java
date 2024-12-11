@@ -38,7 +38,7 @@ public class NPC {
         this.obj=new Sprite(sheet[child]);
 //        this.health=child?MathUtils.random(1,4):MathUtils.random(5,10);
 //        this.speed=child?MathUtils.random(1,6):MathUtils.random(5,12);
-        this.health=10f;
+        this.health=MathUtils.random(5,10);
         this.coordinates=new Vector2(position);
         size=new Vector2(screen.x/COLS,screen.y/ROWS);
         obj.setPosition(position.x*size.x,position.y*size.y);
@@ -48,8 +48,29 @@ public class NPC {
         speed=0.5f;
     }
 
+    public void setDirection(Vector2 targetPosition){
+        Vector2 difference = targetPosition.cpy().sub(coordinates);
+
+        if (Math.abs(difference.x) > Math.abs(difference.y)) {
+            if (difference.x > 0) {
+                obj.setRotation(0);
+            } else {
+                obj.setRotation(180);
+            }
+        } else {
+            if (difference.y > 0) {
+                obj.setRotation(90);
+            } else {
+                obj.setRotation(-90);
+            }
+        }
+    }
+
+
     public void setPosition(Vector2 position){
 //        print("moved to : "+position );
+        setDirection(position);
+
         coordinates=position;
         obj.setPosition(position.x*size.x,position.y*size.y);
     }

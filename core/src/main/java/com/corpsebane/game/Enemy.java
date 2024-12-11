@@ -31,9 +31,8 @@ public class Enemy {
     public boolean hasChasePath=false;
     float moveDelay=0.5f;
     private int patrolIndex = 0;
-    private boolean forward = true;
     public Array<Vector2> path,patrolPath;
-    int tries=0;
+    float stageDelay=0f;
     Vector2 randomCoordinates,target;
 
     enum MOBSTATE{
@@ -51,42 +50,88 @@ public class Enemy {
         obj.setPosition(position.x*size.x,position.y*size.y);
         obj.setSize(size.x,size.y);
         obj.setOriginCenter();
-        switch (type){
-            case 0:{
-                damage=MathUtils.random(1,2);
-                health= MathUtils.random(2,3);
-                armor=MathUtils.random(1,2);
-                speed=MathUtils.random(1,2);
-            }break;
-            case 1:{
-                damage=MathUtils.random(3,6);
-                health= MathUtils.random(3,4);
-                armor=MathUtils.random(3,7);
-                speed=MathUtils.random(2,4);
-            }break;
-            case 2:{
-                damage=MathUtils.random(5,10);
-                health= MathUtils.random(12,20);
-                armor=MathUtils.random(2,4);
-                speed=MathUtils.random(6,10);
-
-            }break;
-            case 3:{
-                damage=MathUtils.random(1,2);
-                health= MathUtils.random(12,20);
-                armor=MathUtils.random(1,2);
-                speed=MathUtils.random(1,2);
-            }break;
-        }
-        speed=0.45f;
+        this.type=type;
+        transform(type);
     }
 
+    public void setDirection(Vector2 targetPosition){
+        Vector2 difference = targetPosition.cpy().sub(coordinates);
+
+        if (Math.abs(difference.x) > Math.abs(difference.y)) {
+            if (difference.x > 0) {
+                obj.setRotation(0);
+            } else {
+                obj.setRotation(180);
+            }
+        } else {
+            if (difference.y > 0) {
+                obj.setRotation(90);
+            } else {
+                obj.setRotation(-90);
+            }
+        }
+    }
+
+
     public void setPosition(Vector2 position){
+        setDirection(position);
         coordinates=position;
         obj.setPosition(position.x*size.x,position.y*size.y);
     }
 
+    public void transform(int type){
+        switch (type){
+            case 0:{
+                damage=3;
+                health= MathUtils.random(10,13);
+                armor=MathUtils.random(0,4);
+                speed=0.4f;
+            }break;
+            case 1:{
+                damage=5f;
+                health= MathUtils.random(7,14);
+                armor=MathUtils.random(7,12);
+                speed=0.3f;
+            }break;
+            case 2:{
+                damage=15f;
+                health= MathUtils.random(10,32);
+                armor=MathUtils.random(3,6);
+                speed=0.6f;
+
+            }break;
+            case 3:{
+                damage=3f;
+                health= MathUtils.random(6,14);
+                armor=MathUtils.random(0,3);
+                speed=0.7f;
+            }break;
+            case 4:{
+                damage=0.5f;
+                health= MathUtils.random(1,4);
+                armor=MathUtils.random(0,2);
+                speed=0.5f;
+            }break;
+            case 5:{
+                damage=1.5f;
+                health= MathUtils.random(3,7);
+                armor=MathUtils.random(0,3);
+                speed=0.45f;
+            }break;
+        }
+    }
+
     public void render(SpriteBatch batch,float delta){
+
+
+
+        if(type>3){
+            if(stageDelay>120){
+                transform(type==5?1:type++);
+                stageDelay=0;
+            }
+            stageDelay+=delta;
+        }
 
 //        print(""+state);
 //        coordinates=new Vector2(obj.getX()/size.x,obj.getY()/size.y);
@@ -126,7 +171,7 @@ public class Enemy {
                 if(patrolIndex>patrolPath.size-1){
                     patrolIndex=0;
                 }
-                print(patrolIndex+" , "+coordinates);
+//                print(patrolIndex+" , "+coordinates);
                 setPosition(patrolPath.get(patrolIndex));
                 moveDelay=0f;
                 patrolIndex++;
@@ -137,6 +182,14 @@ public class Enemy {
 
         if(state==MOBSTATE.CHASING&&path.size>1){
             if(moveDelay>speed){
+                if(type==3
+                    && MathUtils.random(0, 30) % 5 == 0
+                    && MathUtils.randomBoolean(0.1f)
+                    && (coordinates.x + coordinates.y) % 7 == 3
+                ){
+                    enemies.add(new Enemy(MathUtils.random(0,1),coordinates,obj.getRotation()));
+                    print("enemy spawned");
+                }
                 setPosition(path.peek());
                 path.pop();
                 moveDelay=0f;

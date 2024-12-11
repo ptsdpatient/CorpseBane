@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -32,6 +33,7 @@ public class GameScreen implements Screen {
     Vector3 touch;
     Vector2 point;
     float playerControlDelay=0f,playerFireDelay=0f;
+    public BitmapFont font;
     boolean startSelected=false,endSelected=false;
     public static PathFinder pathFinder;
     public static OrthographicCamera camera;
@@ -43,17 +45,21 @@ public class GameScreen implements Screen {
     static int gridScale=2;
     float playerSpeed= 0.375f,fireRate=0.55f;
     static int ROWS=22*gridScale,COLS=40*gridScale;
-    Array<Projectile> projectiles;
+    public static Array<Projectile> projectiles;
     public static Array<Enemy> enemies;
     public static Array<NPC> peoples;
     public static Array<Puddle> puddles;
     public static Array<Merc> mercenaries;
-    public boolean rifle =false;
+    public static Array<Memo> memos;
+    public static Array<Item> items;
+    public static Array<Utility> utilities;
     Array<Dungeon> dungeons;
     static Rectangle gameRect;
 
     public static int randomX=0;
     public static int randomY=0;
+
+    public static int mobKills=0,npcKills=0;
 
     float lightRevealTimer = 0;
     float revealDelay = 0.2f;
@@ -73,7 +79,13 @@ public class GameScreen implements Screen {
         peoples = new Array<>();
         puddles=new Array<>();
         mercenaries=new Array<>();
+        items=new Array<>();
+        memos=new Array<>();
         pathFinder=new PathFinder();
+
+        font=new BitmapFont(load("font.fnt"));
+        font.getData().setScale(0.13f);
+
 
         gameRect = new Rectangle(0, 0, COLS, ROWS);
 
@@ -90,8 +102,29 @@ public class GameScreen implements Screen {
 
         generateWorld();
 
-//        camera.zoom=0.2f;
+//        camera.zoom=0.275f;
 
+    }
+
+
+    public static float getRandomDirection(){
+        float rotation;
+        Vector2 difference = getRandomCellPath().cpy().sub(getRandomCellPath());
+
+        if (Math.abs(difference.x) > Math.abs(difference.y)) {
+            if (difference.x > 0) {
+                rotation=0f;
+            } else {
+                rotation=180;
+            }
+        } else {
+            if (difference.y > 0) {
+                rotation=90;
+            } else {
+                rotation=-90;
+            }
+        }
+        return rotation;
     }
 
     public static boolean isNearby(Vector2 position1, Vector2 position2, float radius) {
@@ -100,7 +133,7 @@ public class GameScreen implements Screen {
 
 
     private void generateWorld() {
-        int dungeonCount = MathUtils.random(4, gridScale*6);
+        int dungeonCount = MathUtils.random(3, 15);
 
 
         boolean touchingOtherRect;
@@ -145,16 +178,7 @@ public class GameScreen implements Screen {
                                     (i == rect.y + rect.height - 1 && j == rect.x + rect.width - 1);
 
 
-                            int randomDungeonIndex=MathUtils.random(0,dungeons.size-1);
 
-                            if(!isCorner&&z>0){
-                                if(!dungeons.get(randomDungeonIndex).isConnected){
-//                                    print("connecting door ");
-                                    dungeon.isConnected=true;
-                                    pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.get(randomDungeonIndex).dungeon));
-                                    z--;
-                                }
-                            }
                             gameCells[index].isBorder = true;
                         }
 
@@ -162,17 +186,27 @@ public class GameScreen implements Screen {
                 }
             }
         }
-
-        for(Dungeon dungeon : dungeons){
-            if(!dungeon.isConnected){
-                print("dungeon not connected");
+        int connectDoorCount=0;
+        while(connectDoorCount<dungeons.size){
+            for(Dungeon dungeon : dungeons){
+                if(!dungeon.isConnected){
+                    print("connecting door ");
+                    connectDoorCount++;
+                    pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.random().dungeon));
+                    dungeon.isConnected=true;
+                }
             }
         }
 
+
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
-        for(int l=0;l<4;l++)enemies.add(new Enemy(MathUtils.random(0,5),getRandomCellPath(),0));
-        for(int l=0;l<20;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),0));
-        for(int l=0;l<5;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),0));
+//        for(int l=0;l<7;l++)enemies.add(new Enemy(3,getRandomCellPath(),getRandomDirection()));
+        for(int l=0;l<15;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),getRandomDirection()));
+//        for(int l=0;l<4;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),getRandomDirection()));
+        for(int l=0;l<20;l++)items.add(new Item(MathUtils.random(0,21),getRandomCellPath()));
+        for(int l=0;l<15;l++)memos.add(new Memo(MathUtils.random(0,2),getRandomCellPath()));
+        for(int l=0;l<15;l++)utilities.add(new Utility(MathUtils.randomBoolean(),getRandomCellPath()));
+
 
     }
 
@@ -213,6 +247,10 @@ public class GameScreen implements Screen {
         viewport.apply();
     }
 
+    public static boolean isPlayerBad(){
+        return mobKills-npcKills<0;
+    }
+
     private void initializeCells() {
         gameCells=new GameCell[ROWS*COLS];
         int index=0;
@@ -230,7 +268,6 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-
         litDungeon(delta);
 
         revealPath();
@@ -245,8 +282,8 @@ public class GameScreen implements Screen {
         for(GameCell cell : gameCells){
 
             shapeRenderer.setColor(Color.BLACK);
-            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
+//            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
+//            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
             if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
             if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
 
@@ -270,9 +307,28 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        for(Item item : items){
+//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+                item.render(batch);
+//            }
+        }
+
+        for(Memo memo : memos){
+//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+                memo.render(batch);
+//            }
+        }
+
+
         for(Puddle puddle : puddles){
 //            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
                 puddle.render(batch);
+//            }
+        }
+
+        for(Utility util : utilities){
+//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+                util.render(batch);
 //            }
         }
 
@@ -280,22 +336,33 @@ public class GameScreen implements Screen {
 //            if(gameCells[getCellIndex((int) npc.coordinates.y, (int) npc.coordinates.x)].isPath){
                 npc.render(batch,delta);
                 if(npc.health<1){
-                    puddles.add(new Puddle(0,new Vector2(npc.coordinates)));
+                    if(MathUtils.random(2,17)%6==3)
+                        enemies.add(new Enemy(4,npc.coordinates,npc.obj.getRotation()));
+                    else
+                        puddles.add(new Puddle(0,new Vector2(npc.coordinates),npc.obj.getRotation()));
                     peoples.removeValue(npc,true);
-//                }
-            }
-
+                }
+//            }
         }
+
 
         for(Merc merc : mercenaries){
-            merc.render(batch,delta);
+//            if(gameCells[getCellIndex((int) merc.coordinates.y, (int) merc.coordinates.x)].isPath) {
+
+                merc.render(batch, delta);
+                if(merc.health<1){
+                    puddles.add(new Puddle(merc.bad?3:4,new Vector2(merc.coordinates),merc.obj.getRotation()));
+                    mercenaries.removeValue(merc,true);
+                }
+//            }
         }
+
 
         for(Enemy enemy : enemies){
 //            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
                 enemy.render(batch,delta);
                 if(enemy.health<1){
-                    puddles.add(new Puddle(1,new Vector2(enemy.coordinates)));
+                    puddles.add(new Puddle(enemy.type<4?1:enemy.type==4?5:6,new Vector2(enemy.coordinates),enemy.obj.getRotation()));
                     enemies.removeValue(enemy,true);
                 }
 //            }
@@ -304,7 +371,6 @@ public class GameScreen implements Screen {
 
 
         for(Projectile projectile : projectiles){
-
             projectile.render(batch,delta);
             if(projectile.isDead){
                 projectiles.removeValue(projectile,true);
@@ -312,11 +378,16 @@ public class GameScreen implements Screen {
 
         }
 
+        font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6.325f);
+        font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6.325f);
+        font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6.325f);
+
+
         player.render(batch);
 
-        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?rifle?3:1:0]);
+        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?player.rifle?3:1:0]);
 
-        if(playerFireDelay>(rifle?0.2f:0.55f)&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
+        if(playerFireDelay>(player.rifle?0.2f:0.55f)&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
             handleFire();
         }else{
             playerFireDelay+=delta;
@@ -327,6 +398,7 @@ public class GameScreen implements Screen {
         }else{
             playerControlDelay+=delta;
         }
+
 
         batch.end();
 
@@ -384,8 +456,11 @@ public class GameScreen implements Screen {
     private void handleFire() {
         if(Gdx.input.isKeyPressed(Input.Keys.Z)||Gdx.input.isKeyPressed(Input.Buttons.LEFT)) {
 //            print("fire");
-            projectiles.add(new Projectile(player.playerSheet[rifle?4:2], player.coordinates, player.obj.getRotation()));
-            playerFireDelay = 0f;
+            if(player.ammo>1){
+                projectiles.add(new Projectile(player.playerSheet[player.rifle?4:2], player.coordinates, player.obj.getRotation()));
+                playerFireDelay = 0f;
+                player.ammo--;
+            }
         }
     }
 
@@ -468,7 +543,7 @@ public class GameScreen implements Screen {
             @Override
             public boolean keyDown(int keycode) {
                 if(keycode==Input.Keys.X){
-                    rifle=!rifle;
+                    player.rifle=!player.rifle;
                 }
 
                 return false;
