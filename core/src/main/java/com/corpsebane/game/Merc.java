@@ -4,6 +4,7 @@ import static com.corpsebane.game.GameScreen.COLS;
 import static com.corpsebane.game.GameScreen.ROWS;
 import static com.corpsebane.game.GameScreen.enemies;
 import static com.corpsebane.game.GameScreen.getRandomCellPath;
+import static com.corpsebane.game.GameScreen.getRandomDirection;
 import static com.corpsebane.game.GameScreen.isNearby;
 import static com.corpsebane.game.GameScreen.isPlayerBad;
 import static com.corpsebane.game.GameScreen.pathFinder;
@@ -47,6 +48,7 @@ public class Merc {
         obj.setPosition(position.x*size.x,position.y*size.y);
         obj.setSize(size.x,size.y);
         obj.setOriginCenter();
+        obj.setRotation(getRandomDirection());
         path=new Array<>();
         speed=0.5f;
     }

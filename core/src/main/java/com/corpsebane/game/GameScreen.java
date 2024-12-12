@@ -61,6 +61,9 @@ public class GameScreen implements Screen {
     public static Array<Memo> memos;
     public static Array<Item> items;
     public static Array<Vent> vents;
+    public static Array<Button> buttons;
+
+    String typewriterText="";
 
     public static Array<Sound> typewriter;
     public static Sound walk,fire,hurt;
@@ -79,7 +82,7 @@ public class GameScreen implements Screen {
 
     public static int mobKills=0,npcKills=0;
 
-    public static boolean ladderActive=false;
+    public static boolean ladderActive=false,moveUp=false,moveDown=false,moveLeft=false,moveRight=false,run=false,shoot=false,toggle=false;
 
     float lightRevealTimer = 0;
     float revealDelay = 0.2f,showMessageDelay=0f,typeWriterSpeed=0.075f;
@@ -92,6 +95,7 @@ public class GameScreen implements Screen {
         this.batch=game.batch;
 
         spawns=new Array<>();
+        buttons=new Array<>();
 
         player = new Player("player");
 
@@ -108,7 +112,6 @@ public class GameScreen implements Screen {
         glyphLayout = new GlyphLayout();
         pathFinder=new PathFinder();
         font=new BitmapFont(load("font.fnt"));
-        font.getData().setScale(0.13f);
 
 
         gameRect = new Rectangle(0, 0, COLS, ROWS);
@@ -123,13 +126,27 @@ public class GameScreen implements Screen {
         cellSize.y = (float) Gdx.graphics.getHeight() / ROWS;
 
         handleSpawns();
-
-
+        addControls();
         generateWorld();
 
 
         camera.zoom=0.275f;
+        font.getData().setScale(0.13f);
 
+
+    }
+
+    private void addControls() {
+        buttons.add(new Button(0,"movement"));
+        buttons.add(new Button(1,"movement"));
+        buttons.add(new Button(2,"movement"));
+        buttons.add(new Button(3,"movement"));
+        buttons.add(new Button(4,"run"));
+        buttons.add(new Button(5,"toggle"));
+        buttons.add(new Button(6,"fire"));
+        buttons.add(new Button(7,"exit"));
+        buttons.add(new Button(8,"control"));
+        buttons.add(new Button(9,"sound"));
     }
 
     private void handleSpawns() {
@@ -463,17 +480,21 @@ public class GameScreen implements Screen {
             }
         }
 
+        for(Button button : buttons){
+            button.render(batch,new Vector2(player.obj.getX(),player.obj.getY()));
+        }
+
        if(ladderActive){
            if(gameCells[getCellIndex((int) ladder.coordinates.y, (int) ladder.coordinates.x)].isPath){
                ladder.render(batch);
            }
        }
 
-        if(player.subLevel<-2){
-            font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6f);
+//        if(player.subLevel<-2){
+            font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*6f,player.obj.getY()+player.playerSize.y*6f);
             font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
-            font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6f);
-        }
+            font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*4.5f,player.obj.getY()+player.playerSize.y*6f);
+//        }
 
 
         if(!showMessage){
@@ -483,15 +504,15 @@ public class GameScreen implements Screen {
                font.draw(batch,"Press Z to interact",player.obj.getX()-player.playerSize.x*2.5f,player.obj.getY()-player.playerSize.y*3);
             }
         }else if(displayMessage.length()>1){
-            glyphLayout.setText(font, (showMessageIndex < displayMessage.length())
-                ? displayMessage.substring(0, showMessageIndex)
-                : displayMessage);
+            typewriterText=(showMessageIndex < displayMessage.length()) ? displayMessage.substring(0, showMessageIndex) : displayMessage;
+
+            glyphLayout.setText(font,typewriterText, Color.WHITE, displayMessage.length()+20, Align.center, true);
 
             font.draw(
                 batch,
                 glyphLayout,
                 player.obj.getX()-glyphLayout.width/2f,
-                player.obj.getY() - player.playerSize.y * 3
+                player.obj.getY() - player.playerSize.y * 1.75f
             );
 
             if (showMessageDelay > typeWriterSpeed) {
@@ -820,41 +841,72 @@ public class GameScreen implements Screen {
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
 
-                for(GameCell cell : gameCells){
-                    if(cell.isTouching(point)){
-                        print("selected cell cell: (" + cell.i + ", " + cell.j + ")");
-                        if(Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)){
-                            if(startSelected && cell.isStart){
-                                startSelected=false;
-                                cell.isStart=false;
-                            }else if(!startSelected && !cell.isStart){
-                                startSelected=true;
-                                cell.isStart=true;
-                            }
+                for(Button btn : buttons){
+                    if(btn.button.getBoundingRectangle().contains(point)){
+                        print(btn.index);
+                        switch(btn.index){
+                            case 0:{
+                                moveUp=true;
+                            }break;
+                            case 1:{
+                                moveRight=true;
+                            }break;
+                            case 2:{
+                                moveDown=true;
+                            }break;
+                            case 3:{
+                                moveLeft=true;
+                            }break;
+                            case 4:{
+                                run=true;
+                            }break;
+                            case 5:{
+                                toggle=true;
+                            }break;
+                            case 6:{
+                                shoot=true;
+                            }break;
                         }
-                        if(Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)){
-                            if(endSelected && cell.isEnd){
-                                endSelected=false;
-                                cell.isEnd=false;
-                            }else if(!endSelected && !cell.isEnd){
-                                endSelected=true;
-                                cell.isEnd=true;
-                            }
-                        }
-
-
-
-
                     }
-
-
-
                 }
+
                 return false;
             }
 
             @Override
             public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+                touch = new Vector3(screenX,screenY,0);
+                camera.unproject(touch);
+                point=new Vector2(touch.x,touch.y);
+
+                for(Button btn : buttons){
+                    if(btn.button.getBoundingRectangle().contains(point)){
+                        print(btn.index);
+                        switch(btn.index){
+                            case 0:{
+                                moveUp=false;
+                            }break;
+                            case 1:{
+                                moveRight=false;
+                            }break;
+                            case 2:{
+                                moveDown=false;
+                            }break;
+                            case 3:{
+                                moveLeft=false;
+                            }break;
+                            case 4:{
+                                run=false;
+                            }break;
+                            case 5:{
+                                toggle=false;
+                            }break;
+                            case 6:{
+                                shoot=false;
+                            }break;
+                        }
+                    }
+                }
                 return false;
             }
 
