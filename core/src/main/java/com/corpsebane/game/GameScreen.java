@@ -48,11 +48,12 @@ public class GameScreen implements Screen {
     public Viewport viewport;
     static int gridScale=2,showMessageIndex=0;
     float playerSpeed= 0.375f;
-    static int ROWS=22*gridScale,COLS=40*gridScale;
+    static int ROWS=22*gridScale,COLS=40*gridScale,exploredDungeon=0;
     public static Array<Projectile> projectiles;
 
     public boolean showInteractButton=false;
 
+    public static Array<Spawn> spawns;
     public static Array<Enemy> enemies;
     public static Array<NPC> peoples;
     public static Array<Puddle> puddles;
@@ -78,6 +79,8 @@ public class GameScreen implements Screen {
 
     public static int mobKills=0,npcKills=0;
 
+    public static boolean ladderActive=false;
+
     float lightRevealTimer = 0;
     float revealDelay = 0.2f,showMessageDelay=0f,typeWriterSpeed=0.075f;
     int maxRadius = 4;
@@ -87,6 +90,8 @@ public class GameScreen implements Screen {
 
         this.game=game;
         this.batch=game.batch;
+
+        spawns=new Array<>();
 
         player = new Player("player");
 
@@ -117,10 +122,28 @@ public class GameScreen implements Screen {
         cellSize.x = (float) Gdx.graphics.getWidth() / COLS;
         cellSize.y = (float) Gdx.graphics.getHeight() / ROWS;
 
+        handleSpawns();
+
+
         generateWorld();
+
 
         camera.zoom=0.275f;
 
+    }
+
+    private void handleSpawns() {
+        spawns.add(new Spawn(0,0,0,2,2,6,30,0,0));
+        spawns.add(new Spawn(0,0,0,3,5,3,20,3,0));
+        spawns.add(new Spawn(0,0,0,4,6,8,15,5,4));
+        spawns.add(new Spawn(3,0,1,5,4,5,20,4,8));
+        spawns.add(new Spawn(7,0,1,10,6,10,25,7,14));
+        spawns.add(new Spawn(15,0,2,10,3,7,25,4,20));
+        spawns.add(new Spawn(25,0,3,10,6,10,30,10,20));
+        spawns.add(new Spawn(30,0,3,20,3,10,15,6,18));
+        spawns.add(new Spawn(40,1,4,12,7,12,10,7,30));
+        spawns.add(new Spawn(50,2,4,12,7,12,10,7,25));
+        spawns.add(new Spawn(60,2,5,12,7,12,10,7,20));
     }
 
 
@@ -237,15 +260,18 @@ public class GameScreen implements Screen {
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
         player.obj.setRotation(getRandomDirection());
-//        for(int l=0;l<7;l++)enemies.add(new Enemy(3,getRandomCellPath(),getRandomDirection()));
-        for(int l=0;l<15;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),MathUtils.randomBoolean(0.15f)));
-//        for(int l=0;l<4;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),getRandomDirection()));
-        for(int l=0;l<20;l++)items.add(new Item(MathUtils.random(0,21),getRandomCellPath()));
-        for(int l=0;l<15;l++)memos.add(new Memo(MathUtils.random(0,2),getRandomCellPath()));
-        for(int l=0;l<15;l++)utilities.add(new Utility(MathUtils.randomBoolean(),getRandomCellPath()));
-        for(int l=0;l<7;l++)vents.add(new Vent());
 
-        ladder=new Ladder(getRandomCellInRectangle(dungeons.random().dungeon));
+
+
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).enemyCount;l++)enemies.add(new Enemy(MathUtils.random(spawns.get((player.subLevel*-1)-1).startRange,spawns.get((player.subLevel*-1)-1).endRange),getRandomCellPath(),getRandomDirection()));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).npcCount;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),MathUtils.randomBoolean(0.35f)));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).mercCount;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),getRandomDirection()));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).itemCount;l++)items.add(new Item(MathUtils.random(0,21),getRandomCellPath()));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).memoCount;l++)memos.add(new Memo(MathUtils.random(0,2),getRandomCellPath()));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).utilityCount;l++)utilities.add(new Utility(MathUtils.randomBoolean(),getRandomCellPath()));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).ventCount;l++)vents.add(new Vent());
+        ladderActive=false;
+        ladder=null;
 
     }
 
@@ -309,8 +335,21 @@ public class GameScreen implements Screen {
 
         litDungeon(delta);
 
-
-
+        for(Dungeon dungeon : dungeons){
+            if(!dungeon.isExplored&& dungeon.dungeon.contains(player.coordinates)){
+                dungeon.isExplored=true;
+                exploredDungeon++;
+            }
+        }
+        if(exploredDungeon==(dungeons.size-MathUtils.random(1,2))&&!ladderActive){
+            print("spawn ladder!");
+            for(Dungeon dungeon : dungeons){
+                if(!dungeon.isExplored){
+                    ladder=new Ladder(getRandomCellInRectangle(dungeon.dungeon));
+                    ladderActive=true;
+                }
+            }
+        }
         revealPath();
 
 //        camera.position.set(screen.x/2f,screen.y/2f,0);
@@ -324,12 +363,12 @@ public class GameScreen implements Screen {
             shapeRenderer.setColor(Color.BLACK);
 //            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
 //            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
-            if(cell.isBorder)shapeRenderer.setColor(Color.LIGHT_GRAY);
-            if(cell.isRoad)shapeRenderer.setColor(Color.DARK_GRAY);
+            if(cell.isBorder)shapeRenderer.setColor(Color.DARK_GRAY);
+            if(cell.isRoad)shapeRenderer.setColor(Color.LIGHT_GRAY);
 
-//          if(cell.isPath){
-            shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
-//          }
+          if(cell.isPath){
+                shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
+          }
 
         }
 
@@ -353,35 +392,34 @@ public class GameScreen implements Screen {
         }
 
         for(Item item : items){
-//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+            if(gameCells[getCellIndex((int) item.coordinates.y, (int) item.coordinates.x)].isPath){
                 item.render(batch);
-//            }
+            }
         }
 
         for(Memo memo : memos){
-//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+            if(gameCells[getCellIndex((int) memo.coordinates.y, (int) memo.coordinates.x)].isPath){
                 memo.render(batch);
-//            }
+            }
         }
 
 
         for(Puddle puddle : puddles){
-//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
+            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
                 puddle.render(batch);
-//            }
+            }
         }
 
 
         for(Utility util : utilities){
-//            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
-
-            util.render(batch);
-//            }
+            if(gameCells[getCellIndex((int) util.coordinates.y, (int) util.coordinates.x)].isPath){
+                util.render(batch);
+            }
         }
 
 
         for(NPC npc : peoples){
-//            if(gameCells[getCellIndex((int) npc.coordinates.y, (int) npc.coordinates.x)].isPath){
+            if(gameCells[getCellIndex((int) npc.coordinates.y, (int) npc.coordinates.x)].isPath){
                 npc.render(batch,delta);
                 if(npc.health<1){
                     if(MathUtils.random(2,17)%6==3)
@@ -390,30 +428,30 @@ public class GameScreen implements Screen {
                         puddles.add(new Puddle(0,new Vector2(npc.coordinates),npc.obj.getRotation()));
                     peoples.removeValue(npc,true);
                 }
-//            }
+            }
         }
 
 
         for(Merc merc : mercenaries){
-//            if(gameCells[getCellIndex((int) merc.coordinates.y, (int) merc.coordinates.x)].isPath) {
+            if(gameCells[getCellIndex((int) merc.coordinates.y, (int) merc.coordinates.x)].isPath) {
 
                 merc.render(batch, delta);
                 if(merc.health<1){
                     puddles.add(new Puddle(merc.bad?3:4,new Vector2(merc.coordinates),merc.obj.getRotation()));
                     mercenaries.removeValue(merc,true);
                 }
-//            }
+            }
         }
 
 
         for(Enemy enemy : enemies){
-//            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
+            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
                 enemy.render(batch,delta);
                 if(enemy.health<1){
                     puddles.add(new Puddle(enemy.type<4?1:enemy.type==4?5:6,new Vector2(enemy.coordinates),enemy.obj.getRotation()));
                     enemies.removeValue(enemy,true);
                 }
-//            }
+            }
         }
 
 
@@ -425,14 +463,17 @@ public class GameScreen implements Screen {
             }
         }
 
-//            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
-        ladder.render(batch);
+       if(ladderActive){
+           if(gameCells[getCellIndex((int) ladder.coordinates.y, (int) ladder.coordinates.x)].isPath){
+               ladder.render(batch);
+           }
+       }
 
-//            }
-
-        font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6f);
-        font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
-        font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6f);
+        if(player.subLevel<-2){
+            font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6f);
+            font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
+            font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6f);
+        }
 
 
         if(!showMessage){
@@ -496,15 +537,17 @@ public class GameScreen implements Screen {
     }
 
     private boolean checkInteract() {
-        if(ladder.coordinates.x==player.coordinates.x&&ladder.coordinates.y==player.coordinates.y){
-            print(player.coordinates+"");
-            showInteractButton=true;
-            if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
-                print("new world");
-                player.subLevel-=1;
-                showMessage=false;
-                generateWorld();
-                return true;
+        if(ladderActive){
+            if(ladder.coordinates.x==player.coordinates.x&&ladder.coordinates.y==player.coordinates.y){
+                print(player.coordinates+"");
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    print("new world");
+                    player.subLevel-=1;
+                    showMessage=false;
+                    generateWorld();
+                    return false;
+                }
             }
         }
 
@@ -669,7 +712,7 @@ public class GameScreen implements Screen {
                 return;
             }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
-                walk.play(0.35f);
+                walk.play(0.15f);
             }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.UP)||Gdx.input.isKeyPressed(Input.Keys.W)){
@@ -683,7 +726,7 @@ public class GameScreen implements Screen {
 
             }else if(checkCollision(player.coordinates.x, player.coordinates.y+1)){
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
-                walk.play(0.35f);
+                walk.play(0.15f);
 
             }
         }
@@ -698,7 +741,7 @@ public class GameScreen implements Screen {
 
             }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
-                walk.play(0.35f);
+                walk.play(0.15f);
 
             }
         }
@@ -711,7 +754,7 @@ public class GameScreen implements Screen {
 
             }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) {
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
-                walk.play(0.35f);
+                walk.play(0.15f);
 
             }
         }

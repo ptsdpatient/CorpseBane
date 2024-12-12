@@ -51,13 +51,13 @@ public class Vent {
     }
 
     public void render(SpriteBatch batch){
-//        if(gameCells[getCellIndex((int) vent1_coordinates.y, (int) vent1_coordinates.x)].isPath){
+        if(gameCells[getCellIndex((int) vent1_coordinates.y, (int) vent1_coordinates.x)].isPath){
             vent1.draw(batch);
-//        }
+        }
 
-//        if(gameCells[getCellIndex((int) vent2_coordinates.y, (int) vent2_coordinates.x)].isPath){
+        if(gameCells[getCellIndex((int) vent2_coordinates.y, (int) vent2_coordinates.x)].isPath){
             vent2.draw(batch);
-//        }
+        }
 
     }
 }

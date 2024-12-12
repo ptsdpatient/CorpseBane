@@ -9,6 +9,7 @@ import static com.corpsebane.game.GameScreen.getCellIndex;
 import static com.corpsebane.game.GameScreen.hurt;
 import static com.corpsebane.game.GameScreen.isNearby;
 import static com.corpsebane.game.GameScreen.mercenaries;
+import static com.corpsebane.game.GameScreen.npcKills;
 import static com.corpsebane.game.GameScreen.peoples;
 import static com.corpsebane.game.GameScreen.player;
 import static com.corpsebane.game.GameScreen.screen;
@@ -99,7 +100,12 @@ public class Projectile {
                     isDead = true;
                     hurt.play(0.5f);
                     merc.health-= MathUtils.random(0,3);
-
+                    hurt.play(0.5f);
+                    if(merc.state== Merc.MercState.IDLE){
+                        merc.hasSafePath=false;
+                        merc.state=Merc.MercState.AIM;
+                        npcKills+=7;
+                    }
                     break;
                 }
             }
