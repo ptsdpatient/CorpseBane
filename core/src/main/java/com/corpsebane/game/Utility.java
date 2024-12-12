@@ -13,20 +13,21 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
 public class Utility {
-    int index;
     Vector2 coordinates,size;
     String res;
     Sprite obj;
+    public boolean ammo;
     public Utility(boolean ammo, Vector2 position){
+        this.ammo=ammo;
         this.res= ammo?"It's a box of ammunation":"It's a med kit";
-        this.obj=new Sprite(extractSprites("utility_sheet.png",32,32)[index]);
+        this.obj=new Sprite(extractSprites("utility_sheet.png",32,32)[ammo?0:1]);
         coordinates=new Vector2(position);
         size=new Vector2(screen.x/COLS,screen.y/ROWS);
         obj.setPosition(position.x*size.x,position.y*size.y);
         obj.setSize(size.x,size.y);
         obj.setOriginCenter();
         obj.setRotation(getRandomDirection());
-        obj.setScale(MathUtils.random(0.7f,1));
+        obj.setScale(MathUtils.random(0.7f,1.2f));
     }
 
     public void render(SpriteBatch batch){

@@ -6,7 +6,9 @@ import static com.corpsebane.game.GameScreen.enemies;
 import static com.corpsebane.game.GameScreen.gameCells;
 import static com.corpsebane.game.GameScreen.getCellIndex;
 import static com.corpsebane.game.GameScreen.getRandomCellPath;
+import static com.corpsebane.game.GameScreen.getRandomDirection;
 import static com.corpsebane.game.GameScreen.isNearby;
+import static com.corpsebane.game.GameScreen.mercenaries;
 import static com.corpsebane.game.GameScreen.pathFinder;
 import static com.corpsebane.game.GameScreen.screen;
 import static com.corpsebane.game.Methods.extractSprites;
@@ -21,11 +23,12 @@ import com.badlogic.gdx.utils.Array;
 
 public class NPC {
     public Sprite obj;
-    public int type,tries;
+    public int tries;
     public TextureRegion[] sheet;
     public Vector2 size,coordinates;
     public float health,speed,moveDelay=0f;
-    public boolean hasSafePath=false;
+    public boolean hasSafePath=false,canTalk=false;
+    String res=null;
     public Array<Vector2> path;
     enum NPCSTATE{
         IDLE,SNEAKING
@@ -33,12 +36,13 @@ public class NPC {
 
     NPCSTATE state=NPCSTATE.IDLE;
 
-    public NPC(int child,Vector2 position,float direction){
+    public NPC(int child,Vector2 position,boolean canTalk){
         this.sheet=extractSprites("npc_sheet.png",32,32);
         this.obj=new Sprite(sheet[child]);
 //        this.health=child?MathUtils.random(1,4):MathUtils.random(5,10);
 //        this.speed=child?MathUtils.random(1,6):MathUtils.random(5,12);
         this.health=MathUtils.random(5,10);
+        this.canTalk=canTalk;
         this.coordinates=new Vector2(position);
         size=new Vector2(screen.x/COLS,screen.y/ROWS);
         obj.setPosition(position.x*size.x,position.y*size.y);
@@ -46,6 +50,7 @@ public class NPC {
         obj.setOriginCenter();
         path=new Array<>();
         speed=0.5f;
+        obj.setRotation(getRandomDirection());
     }
 
     public void setDirection(Vector2 targetPosition){
@@ -100,6 +105,18 @@ public class NPC {
                             path=pathFinder.findPath(coordinates,randomPoint,10);
                             break;
                         }
+                    }
+                    for(Merc merc : mercenaries){
+                        if(!isNearby(merc.coordinates,randomPoint,5)){
+                            hasSafePath=true;
+                            path=pathFinder.findPath(coordinates,randomPoint,10);
+                            break;
+                        }
+                    }
+                    if(!isNearby(GameScreen.player.coordinates,randomPoint,5)){
+                        hasSafePath=true;
+                        path=pathFinder.findPath(coordinates,randomPoint,10);
+                        break;
                     }
                 }
             }

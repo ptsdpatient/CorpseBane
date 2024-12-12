@@ -20,7 +20,7 @@ public class Puddle {
     public Vector2 size,coordinates;
     public Puddle(int index, Vector2 position,float direction){
         this.sheet=extractSprites("puddle_sheet.png",32,32);
-        this.obj=new Sprite(sheet[index]);;
+        this.obj=new Sprite(sheet[index]);
         size=new Vector2(screen.x/COLS,screen.y/ROWS);
         coordinates=new Vector2(position);
         obj.setPosition(position.x*size.x,position.y*size.y);

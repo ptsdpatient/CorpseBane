@@ -6,6 +6,7 @@ import static com.corpsebane.game.GameScreen.checkCollision;
 import static com.corpsebane.game.GameScreen.enemies;
 import static com.corpsebane.game.GameScreen.gameCells;
 import static com.corpsebane.game.GameScreen.getCellIndex;
+import static com.corpsebane.game.GameScreen.hurt;
 import static com.corpsebane.game.GameScreen.isNearby;
 import static com.corpsebane.game.GameScreen.mercenaries;
 import static com.corpsebane.game.GameScreen.peoples;
@@ -59,7 +60,36 @@ public class Projectile {
             for(NPC npc : peoples){
                 if (npc.coordinates.x == coordinates.x &&npc.coordinates.y == coordinates.y ) {
                     isDead = true;
+                    hurt.play(0.5f);
                     npc.health-= MathUtils.random(0,3);
+                    if(npc.state== NPC.NPCSTATE.IDLE){
+                        npc.hasSafePath=false;
+                        npc.state=NPC.NPCSTATE.SNEAKING;
+                        int randomRes=MathUtils.random(0,6);
+                        switch (randomRes){
+                            case 0:{
+                                npc.res="What's wrong with you";
+                            }break;
+                            case 1:{
+                                npc.res="We’re all stuck here, and you’re making it worse!";
+                            }break;
+                            case 2:{
+                                npc.res="Leave me alone. We have bigger problems.";
+                            }break;
+                            case 3:{
+                                npc.res="You think you’re a hero? You’re just a monster!";
+                            }break;
+                            case 4:{
+                                npc.res="Have you lost your mind!";
+                            }break;
+                            case 5:{
+                                npc.res="...";
+                            }break;
+                            case 6:{
+                                npc.res="No, please! I’m not your enemy!";
+                            }break;
+                        }
+                    }
                     break;
                 }
             }
@@ -67,18 +97,22 @@ public class Projectile {
             for(Merc merc : mercenaries){
                 if (merc.coordinates.x == coordinates.x &&merc.coordinates.y == coordinates.y ) {
                     isDead = true;
+                    hurt.play(0.5f);
                     merc.health-= MathUtils.random(0,3);
+
                     break;
                 }
             }
             if (player.coordinates.x == coordinates.x &&player.coordinates.y == coordinates.y ) {
                 isDead = true;
-                player.health -= MathUtils.random(0,3);
+                hurt.play(0.5f);
+                player.health -= MathUtils.random(0,15);
             }
 
             for(Enemy enemy : enemies){
                 if (enemy.coordinates.x == coordinates.x &&enemy.coordinates.y == coordinates.y ) {
                     isDead = true;
+                    hurt.play(0.5f);
                     if(enemy.armor>0){
                         enemy.armor-= MathUtils.random(0,4);
                     }else{

@@ -9,11 +9,13 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -21,6 +23,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -28,13 +31,14 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen implements Screen {
     public static Player player;
+    public static Ladder ladder;
     public CorpseBane game;
     public SpriteBatch batch;
     Vector3 touch;
     Vector2 point;
     float playerControlDelay=0f,playerFireDelay=0f;
     public BitmapFont font;
-    boolean startSelected=false,endSelected=false;
+    boolean startSelected=false,endSelected=false,showMessage=false;
     public static PathFinder pathFinder;
     public static OrthographicCamera camera;
     public static Vector2 screen=new Vector2(1280/2f,720/2f);
@@ -42,19 +46,32 @@ public class GameScreen implements Screen {
     public Vector2 cellSize;
     public static GameCell[] gameCells;
     public Viewport viewport;
-    static int gridScale=2;
-    float playerSpeed= 0.375f,fireRate=0.55f;
+    static int gridScale=2,showMessageIndex=0;
+    float playerSpeed= 0.375f;
     static int ROWS=22*gridScale,COLS=40*gridScale;
     public static Array<Projectile> projectiles;
+
+    public boolean showInteractButton=false;
+
     public static Array<Enemy> enemies;
     public static Array<NPC> peoples;
     public static Array<Puddle> puddles;
     public static Array<Merc> mercenaries;
     public static Array<Memo> memos;
     public static Array<Item> items;
+    public static Array<Vent> vents;
+
+    public static Array<Sound> typewriter;
+    public static Sound walk,fire,hurt;
+    public static String[] docs;
+    public static int docsIndex=0;
+    public static GlyphLayout glyphLayout;
+
+
     public static Array<Utility> utilities;
-    Array<Dungeon> dungeons;
+    public static Array<Dungeon> dungeons;
     static Rectangle gameRect;
+    public String displayMessage="";
 
     public static int randomX=0;
     public static int randomY=0;
@@ -62,7 +79,7 @@ public class GameScreen implements Screen {
     public static int mobKills=0,npcKills=0;
 
     float lightRevealTimer = 0;
-    float revealDelay = 0.2f;
+    float revealDelay = 0.2f,showMessageDelay=0f,typeWriterSpeed=0.075f;
     int maxRadius = 4;
 
     public GameScreen(CorpseBane game){
@@ -73,16 +90,18 @@ public class GameScreen implements Screen {
 
         player = new Player("player");
 
-        projectiles=new Array<>();
-        enemies=new Array<>();
-        dungeons = new Array<>();
-        peoples = new Array<>();
-        puddles=new Array<>();
-        mercenaries=new Array<>();
-        items=new Array<>();
-        memos=new Array<>();
-        pathFinder=new PathFinder();
+        typewriter=new Array<>();
+        for(int i=0;i<3;i++){
+            typewriter.add(Gdx.audio.newSound(load("typewriter/"+(i+1)+".wav")));
+        }
 
+        walk=Gdx.audio.newSound(load("walk.wav"));
+        fire=Gdx.audio.newSound(load("gun.wav"));
+        hurt=Gdx.audio.newSound(load("hurt.wav"));
+
+        docs=Gdx.files.internal("docs.txt").readString().split("\\r?\\n");
+        glyphLayout = new GlyphLayout();
+        pathFinder=new PathFinder();
         font=new BitmapFont(load("font.fnt"));
         font.getData().setScale(0.13f);
 
@@ -98,11 +117,9 @@ public class GameScreen implements Screen {
         cellSize.x = (float) Gdx.graphics.getWidth() / COLS;
         cellSize.y = (float) Gdx.graphics.getHeight() / ROWS;
 
-        initializeCells();
-
         generateWorld();
 
-//        camera.zoom=0.275f;
+        camera.zoom=0.275f;
 
     }
 
@@ -133,7 +150,20 @@ public class GameScreen implements Screen {
 
 
     private void generateWorld() {
-        int dungeonCount = MathUtils.random(3, 15);
+        initializeCells();
+
+        projectiles=new Array<>();
+        enemies=new Array<>();
+        dungeons = new Array<>();
+        peoples = new Array<>();
+        puddles=new Array<>();
+        mercenaries=new Array<>();
+        items=new Array<>();
+        memos=new Array<>();
+        utilities=new Array<>();
+        vents=new Array<>();
+
+        int dungeonCount = MathUtils.random(5, 15);
 
 
         boolean touchingOtherRect;
@@ -186,11 +216,11 @@ public class GameScreen implements Screen {
                 }
             }
         }
+
         int connectDoorCount=0;
         while(connectDoorCount<dungeons.size){
             for(Dungeon dungeon : dungeons){
                 if(!dungeon.isConnected){
-                    print("connecting door ");
                     connectDoorCount++;
                     pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.random().dungeon));
                     dungeon.isConnected=true;
@@ -198,15 +228,24 @@ public class GameScreen implements Screen {
             }
         }
 
+        for(Dungeon dungeon : dungeons){
+            if(MathUtils.randomBoolean(0.5f)){
+                pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.random().dungeon));
+            }
+        }
+
 
         player.setPosition(getRandomCellInRectangle(dungeons.random().dungeon));
+        player.obj.setRotation(getRandomDirection());
 //        for(int l=0;l<7;l++)enemies.add(new Enemy(3,getRandomCellPath(),getRandomDirection()));
-        for(int l=0;l<15;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),getRandomDirection()));
+        for(int l=0;l<15;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),MathUtils.randomBoolean(0.15f)));
 //        for(int l=0;l<4;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),getRandomDirection()));
         for(int l=0;l<20;l++)items.add(new Item(MathUtils.random(0,21),getRandomCellPath()));
         for(int l=0;l<15;l++)memos.add(new Memo(MathUtils.random(0,2),getRandomCellPath()));
         for(int l=0;l<15;l++)utilities.add(new Utility(MathUtils.randomBoolean(),getRandomCellPath()));
+        for(int l=0;l<7;l++)vents.add(new Vent());
 
+        ladder=new Ladder(getRandomCellInRectangle(dungeons.random().dungeon));
 
     }
 
@@ -270,11 +309,12 @@ public class GameScreen implements Screen {
 
         litDungeon(delta);
 
+
+
         revealPath();
 
-        camera.position.set(screen.x/2f,screen.y/2f,0);
-
-//        camera.position.set(player.obj.getX()+player.playerSize.x/2f,player.obj.getY()+player.playerSize.y/2f,0);
+//        camera.position.set(screen.x/2f,screen.y/2f,0);
+        camera.position.set(player.obj.getX()+player.playerSize.x/2f,player.obj.getY()+player.playerSize.y/2f,0);
         camera.update();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
@@ -307,6 +347,11 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+
+        for(Vent vent : vents){
+            vent.render(batch);
+        }
+
         for(Item item : items){
 //            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
                 item.render(batch);
@@ -326,11 +371,14 @@ public class GameScreen implements Screen {
 //            }
         }
 
+
         for(Utility util : utilities){
 //            if(gameCells[getCellIndex((int) puddle.coordinates.y, (int) puddle.coordinates.x)].isPath){
-                util.render(batch);
+
+            util.render(batch);
 //            }
         }
+
 
         for(NPC npc : peoples){
 //            if(gameCells[getCellIndex((int) npc.coordinates.y, (int) npc.coordinates.x)].isPath){
@@ -375,13 +423,56 @@ public class GameScreen implements Screen {
             if(projectile.isDead){
                 projectiles.removeValue(projectile,true);
             }
-
         }
 
-        font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6.325f);
-        font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6.325f);
-        font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6.325f);
+//            if(gameCells[getCellIndex((int) enemy.coordinates.y, (int) enemy.coordinates.x)].isPath){
+        ladder.render(batch);
 
+//            }
+
+        font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*10f,player.obj.getY()+player.playerSize.y*6f);
+        font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
+        font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*6.85f,player.obj.getY()+player.playerSize.y*6f);
+
+
+        if(!showMessage){
+            showInteractButton=false;
+            showMessage=checkInteract();
+            if(showInteractButton){
+               font.draw(batch,"Press Z to interact",player.obj.getX()-player.playerSize.x*2.5f,player.obj.getY()-player.playerSize.y*3);
+            }
+        }else if(displayMessage.length()>1){
+            glyphLayout.setText(font, (showMessageIndex < displayMessage.length())
+                ? displayMessage.substring(0, showMessageIndex)
+                : displayMessage);
+
+            font.draw(
+                batch,
+                glyphLayout,
+                player.obj.getX()-glyphLayout.width/2f,
+                player.obj.getY() - player.playerSize.y * 3
+            );
+
+            if (showMessageDelay > typeWriterSpeed) {
+                // Draw the current substring of the message
+
+                if(showMessageIndex < displayMessage.length()){
+                    typewriter.get(MathUtils.random(0,2)).play(0.5f);
+                }
+                showMessageDelay = 0f; // Reset delay
+                showMessageIndex++; // Increment the index
+
+                // Check if the message display duration is over
+                if (showMessageIndex > displayMessage.length() + 17) {
+                    showMessage = false; // Hide the message
+                    showMessageIndex = 0; // Reset index for the next message
+                }
+            } else {
+                showMessageDelay += delta; // Increment delay
+            }
+
+
+        }
 
         player.render(batch);
 
@@ -402,6 +493,107 @@ public class GameScreen implements Screen {
 
         batch.end();
 
+    }
+
+    private boolean checkInteract() {
+        if(ladder.coordinates.x==player.coordinates.x&&ladder.coordinates.y==player.coordinates.y){
+            print(player.coordinates+"");
+            showInteractButton=true;
+            if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                print("new world");
+                player.subLevel-=1;
+                showMessage=false;
+                generateWorld();
+                return true;
+            }
+        }
+
+        for(Utility utility : utilities){
+            if(utility.coordinates.x==player.coordinates.x&&utility.coordinates.y==player.coordinates.y){
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    if(utility.ammo) player.ammo+=MathUtils.random(1,5)*5;
+                    else if(player.health<75)player.health+=25f;
+                    else player.health=100f;
+                    displayMessage=utility.res;
+                    showMessageIndex=0;
+                    utilities.removeValue(utility,true);
+                    return true;
+                }
+                break;
+            }
+        }
+
+        for(Vent vent : vents){
+            if(vent.vent1Active(player.coordinates)||vent.vent2Active(player.coordinates)){
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    if(vent.vent1Active(player.coordinates)){
+                        player.setPosition(vent.vent2_coordinates);
+                    }else if(vent.vent2Active(player.coordinates)){
+                        player.setPosition(vent.vent1_coordinates);
+                    }
+                    return false;
+                }
+                break;
+            }
+        }
+
+        for(Item item : items){
+            if(item.coordinates.x==player.coordinates.x&&item.coordinates.y==player.coordinates.y){
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    displayMessage=item.res;
+                    showMessageIndex=0;
+                    return true;
+                }
+                break;
+            }
+        }
+
+        for(Memo memo : memos){
+            if(memo.coordinates.x==player.coordinates.x&&memo.coordinates.y==player.coordinates.y){
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    if(memo.res==null){
+                        displayMessage=docs[docsIndex];
+                        memo.res=docs[docsIndex];
+                        docsIndex++;
+                    }else{
+                        displayMessage=memo.res;
+                    }
+                    showMessageIndex=0;
+                    return true;
+
+                }
+                break;
+            }
+        }
+
+        for(NPC npc : peoples){
+            if(npc.coordinates.x==player.coordinates.x&&npc.coordinates.y==player.coordinates.y){
+                showInteractButton=true;
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                    if(npc.canTalk){
+                        if(npc.res==null){
+                            displayMessage=docs[docsIndex];
+                            npc.res=docs[docsIndex];
+                            docsIndex++;
+                        }else{
+                            displayMessage=npc.res;
+                        }
+                        showMessageIndex=0;
+                        return true;
+
+                    }else displayMessage="...";
+                    showMessageIndex=0;
+                    return true;
+
+                }
+                break;
+            }
+        }
+        return false;
     }
 
     private void revealPath() {
@@ -456,9 +648,10 @@ public class GameScreen implements Screen {
     private void handleFire() {
         if(Gdx.input.isKeyPressed(Input.Keys.Z)||Gdx.input.isKeyPressed(Input.Buttons.LEFT)) {
 //            print("fire");
-            if(player.ammo>1){
+            if(player.ammo>0){
                 projectiles.add(new Projectile(player.playerSheet[player.rifle?4:2], player.coordinates, player.obj.getRotation()));
                 playerFireDelay = 0f;
+                fire.play(0.35f);
                 player.ammo--;
             }
         }
@@ -472,9 +665,11 @@ public class GameScreen implements Screen {
 
             if(player.obj.getRotation()!=0){
                 player.obj.setRotation(0);
+//                walk.play(0.5f);
                 return;
             }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
+                walk.play(0.35f);
             }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.UP)||Gdx.input.isKeyPressed(Input.Keys.W)){
@@ -482,10 +677,14 @@ public class GameScreen implements Screen {
 
             if(player.obj.getRotation()!=90){
                 player.obj.setRotation(90);
+//                walk.play(0.5f);
+
                 return;
 
             }else if(checkCollision(player.coordinates.x, player.coordinates.y+1)){
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
+                walk.play(0.35f);
+
             }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.LEFT)||Gdx.input.isKeyPressed(Input.Keys.A)){
@@ -493,10 +692,14 @@ public class GameScreen implements Screen {
 
             if(player.obj.getRotation()!=180){
                 player.obj.setRotation(180);
+//                walk.play(0.5f);
+
                 return;
 
             }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
+                walk.play(0.35f);
+
             }
         }
         if(Gdx.input.isKeyPressed(Input.Keys.DOWN)||Gdx.input.isKeyPressed(Input.Keys.S)){
@@ -504,9 +707,12 @@ public class GameScreen implements Screen {
 
             if(player.obj.getRotation()!=-90){
                 player.obj.setRotation(-90);
+//                walk.play(0.5f);
 
             }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) {
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
+                walk.play(0.35f);
+
             }
         }
 

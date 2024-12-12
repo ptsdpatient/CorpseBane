@@ -13,9 +13,9 @@ import com.badlogic.gdx.math.Vector2;
 
 public class Player {
     public Sprite obj;
-    public int type,subLevel=1;
+    public int type,subLevel=-1;
     public boolean rifle=false;
-    public float health=100,ammo=1040f;
+    public float health=100,ammo=0f;
     public TextureRegion[] playerSheet;
     public Vector2 playerSize,coordinates;
     public Player(String name){

@@ -16,6 +16,7 @@ public class Memo {
     int index;
     Vector2 coordinates,size;
     Sprite obj;
+    String res=null;
     public Memo(int index, Vector2 position){
         this.index=index;
         this.obj=new Sprite(extractSprites("paper_sheet.png",32,32)[index]);
