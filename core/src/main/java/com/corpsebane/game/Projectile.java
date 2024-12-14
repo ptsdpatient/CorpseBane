@@ -62,7 +62,7 @@ public class Projectile {
                 if (npc.coordinates.x == coordinates.x &&npc.coordinates.y == coordinates.y ) {
                     isDead = true;
                     hurt.play(0.5f);
-                    npc.health-= MathUtils.random(0,3);
+                    npc.health-= MathUtils.random(0,4);
                     if(npc.state== NPC.NPCSTATE.IDLE){
                         npc.hasSafePath=false;
                         npc.state=NPC.NPCSTATE.SNEAKING;
@@ -99,7 +99,7 @@ public class Projectile {
                 if (merc.coordinates.x == coordinates.x &&merc.coordinates.y == coordinates.y ) {
                     isDead = true;
                     hurt.play(0.5f);
-                    merc.health-= MathUtils.random(0,3);
+                    merc.health-= MathUtils.random(0,6);
                     hurt.play(0.5f);
                     if(merc.state== Merc.MercState.IDLE){
                         merc.hasSafePath=false;
@@ -112,7 +112,7 @@ public class Projectile {
             if (player.coordinates.x == coordinates.x &&player.coordinates.y == coordinates.y ) {
                 isDead = true;
                 hurt.play(0.5f);
-                player.health -= MathUtils.random(0,15);
+                player.health -= MathUtils.random(0,7);
             }
 
             for(Enemy enemy : enemies){
@@ -120,9 +120,9 @@ public class Projectile {
                     isDead = true;
                     hurt.play(0.5f);
                     if(enemy.armor>0){
-                        enemy.armor-= MathUtils.random(0,4);
+                        enemy.armor-= MathUtils.random(0,5);
                     }else{
-                        enemy.health-= MathUtils.random(0,4);
+                        enemy.health-= MathUtils.random(0,5);
                     }
                     break;
                 }

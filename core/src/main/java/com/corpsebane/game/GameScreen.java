@@ -1,4 +1,6 @@
 package com.corpsebane.game;
+import static com.corpsebane.game.CorpseBane.pauseScreen;
+import static com.corpsebane.game.Methods.extractSprites;
 import static com.corpsebane.game.Methods.load;
 import static com.corpsebane.game.Methods.print;
 
@@ -18,6 +20,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -50,7 +53,6 @@ public class GameScreen implements Screen {
     float playerSpeed= 0.375f;
     static int ROWS=22*gridScale,COLS=40*gridScale,exploredDungeon=0;
     public static Array<Projectile> projectiles;
-
     public boolean showInteractButton=false;
 
     public static Array<Spawn> spawns;
@@ -65,8 +67,8 @@ public class GameScreen implements Screen {
 
     String typewriterText="";
 
-    public static Array<Sound> typewriter;
-    public static Sound walk,fire,hurt;
+    public static Array<Sound> typewriter,walk,monsterWalk,monsterGrowl;
+    public static Sound fire,hurt,ladderSound;
     public static String[] docs;
     public static int docsIndex=0;
     public static GlyphLayout glyphLayout;
@@ -82,7 +84,7 @@ public class GameScreen implements Screen {
 
     public static int mobKills=0,npcKills=0;
 
-    public static boolean ladderActive=false,moveUp=false,moveDown=false,moveLeft=false,moveRight=false,run=false,shoot=false,toggle=false;
+    public static boolean ladderActive=false,moveUp=false,moveDown=false,moveLeft=false,moveRight=false,run=false,aim=false,shoot=false,toggle=false,showControls=true;
 
     float lightRevealTimer = 0;
     float revealDelay = 0.2f,showMessageDelay=0f,typeWriterSpeed=0.075f;
@@ -97,16 +99,32 @@ public class GameScreen implements Screen {
         spawns=new Array<>();
         buttons=new Array<>();
 
-        player = new Player("player");
 
         typewriter=new Array<>();
         for(int i=0;i<3;i++){
             typewriter.add(Gdx.audio.newSound(load("typewriter/"+(i+1)+".wav")));
         }
 
-        walk=Gdx.audio.newSound(load("walk.wav"));
+        walk=new Array<>();
+        for(int i=0;i<4;i++){
+            walk.add(Gdx.audio.newSound(load("footstep/footstep"+(i+1)+".wav")));
+        }
+
+        monsterWalk = new Array<>();
+        for(int i=0;i<2;i++){
+            monsterWalk.add(Gdx.audio.newSound(load("monster/monsterfootstep"+(i+1)+".wav")));
+        }
+
+        monsterGrowl = new Array<>();
+        for(int i=0;i<2;i++){
+            monsterGrowl.add(Gdx.audio.newSound(load("monster/monstergrowl"+(i+1)+".wav")));
+        }
+
+
         fire=Gdx.audio.newSound(load("gun.wav"));
         hurt=Gdx.audio.newSound(load("hurt.wav"));
+        ladderSound=Gdx.audio.newSound(load("ladder.wav"));
+
 
         docs=Gdx.files.internal("docs.txt").readString().split("\\r?\\n");
         glyphLayout = new GlyphLayout();
@@ -127,7 +145,7 @@ public class GameScreen implements Screen {
 
         handleSpawns();
         addControls();
-        generateWorld();
+//        generateWorld();
 
 
         camera.zoom=0.275f;
@@ -143,24 +161,30 @@ public class GameScreen implements Screen {
         buttons.add(new Button(3,"movement"));
         buttons.add(new Button(4,"run"));
         buttons.add(new Button(5,"toggle"));
-        buttons.add(new Button(6,"fire"));
+        buttons.add(new Button(6,"shoot"));
         buttons.add(new Button(7,"exit"));
         buttons.add(new Button(8,"control"));
         buttons.add(new Button(9,"sound"));
+        buttons.add(new Button(10,"aim"));
+
     }
 
     private void handleSpawns() {
-        spawns.add(new Spawn(0,0,0,2,2,6,30,0,0));
-        spawns.add(new Spawn(0,0,0,3,5,3,20,3,0));
-        spawns.add(new Spawn(0,0,0,4,6,8,15,5,4));
-        spawns.add(new Spawn(3,0,1,5,4,5,20,4,8));
-        spawns.add(new Spawn(7,0,1,10,6,10,25,7,14));
-        spawns.add(new Spawn(15,0,2,10,3,7,25,4,20));
-        spawns.add(new Spawn(25,0,3,10,6,10,30,10,20));
-        spawns.add(new Spawn(30,0,3,20,3,10,15,6,18));
-        spawns.add(new Spawn(40,1,4,12,7,12,10,7,30));
-        spawns.add(new Spawn(50,2,4,12,7,12,10,7,25));
-        spawns.add(new Spawn(60,2,5,12,7,12,10,7,20));
+        spawns.add(new Spawn(5,0,0,0,0,4,6,50,0,0));
+        spawns.add(new Spawn(MathUtils.random(5,7),0,0,0,3,7,3,30,3,0));
+        spawns.add(new Spawn(MathUtils.random(5,7),2,0,1,6,6,8,25,5,4));
+        spawns.add(new Spawn(MathUtils.random(5,7),3,0,1,5,7,5,20,4,8));
+        spawns.add(new Spawn(MathUtils.random(5,7),7,0,1,10,6,10,25,7,14));
+        spawns.add(new Spawn(MathUtils.random(5,12),15,0,2,10,12,7,25,4,20));
+        spawns.add(new Spawn(MathUtils.random(5,12),25,0,3,10,6,10,30,10,20));
+        spawns.add(new Spawn(MathUtils.random(5,7),3,0,1,5,4,5,20,4,8));
+        spawns.add(new Spawn(MathUtils.random(5,7),15,0,2,10,3,7,25,4,20));
+        spawns.add(new Spawn(MathUtils.random(5,7),7,0,3,10,6,10,25,7,14));
+        spawns.add(new Spawn(MathUtils.random(8,13),25,0,3,10,6,10,30,10,20));
+        spawns.add(new Spawn(MathUtils.random(7,20),30,0,3,20,3,10,15,6,18));
+        spawns.add(new Spawn(MathUtils.random(6,22),40,1,4,12,7,12,10,7,30));
+        spawns.add(new Spawn(MathUtils.random(6,22),50,2,4,12,7,12,10,7,25));
+        spawns.add(new Spawn(MathUtils.random(6,22),60,2,5,12,7,12,10,7,20));
     }
 
 
@@ -189,7 +213,9 @@ public class GameScreen implements Screen {
     }
 
 
-    private void generateWorld() {
+    public void generateWorld() {
+        player = new Player("player");
+
         initializeCells();
 
         projectiles=new Array<>();
@@ -203,7 +229,7 @@ public class GameScreen implements Screen {
         utilities=new Array<>();
         vents=new Array<>();
 
-        int dungeonCount = MathUtils.random(5, 15);
+        int dungeonCount = spawns.get((player.subLevel*-1)-1).dungeonCount;
 
 
         boolean touchingOtherRect;
@@ -281,7 +307,7 @@ public class GameScreen implements Screen {
 
 
         for(int l=0;l<spawns.get((player.subLevel*-1)-1).enemyCount;l++)enemies.add(new Enemy(MathUtils.random(spawns.get((player.subLevel*-1)-1).startRange,spawns.get((player.subLevel*-1)-1).endRange),getRandomCellPath(),getRandomDirection()));
-        for(int l=0;l<spawns.get((player.subLevel*-1)-1).npcCount;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),MathUtils.randomBoolean(0.35f)));
+        for(int l=0;l<spawns.get((player.subLevel*-1)-1).npcCount;l++)peoples.add(new NPC(MathUtils.random(0,2),getRandomCellPath(),MathUtils.randomBoolean(0.65f)));
         for(int l=0;l<spawns.get((player.subLevel*-1)-1).mercCount;l++)mercenaries.add(new Merc(MathUtils.random(0,1)==0,getRandomCellPath(),getRandomDirection()));
         for(int l=0;l<spawns.get((player.subLevel*-1)-1).itemCount;l++)items.add(new Item(MathUtils.random(0,21),getRandomCellPath()));
         for(int l=0;l<spawns.get((player.subLevel*-1)-1).memoCount;l++)memos.add(new Memo(MathUtils.random(0,2),getRandomCellPath()));
@@ -350,6 +376,10 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if(player.health<-10){
+            game.setDiedScreen();
+        }
+
         litDungeon(delta);
 
         for(Dungeon dungeon : dungeons){
@@ -358,7 +388,7 @@ public class GameScreen implements Screen {
                 exploredDungeon++;
             }
         }
-        if(exploredDungeon==(dungeons.size-MathUtils.random(1,2))&&!ladderActive){
+        if(exploredDungeon==(dungeons.size-2)&&!ladderActive){
             print("spawn ladder!");
             for(Dungeon dungeon : dungeons){
                 if(!dungeon.isExplored){
@@ -374,18 +404,16 @@ public class GameScreen implements Screen {
         camera.update();
 
         shapeRenderer.setProjectionMatrix(camera.combined);
+
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         for(GameCell cell : gameCells){
 
             shapeRenderer.setColor(Color.BLACK);
-//            if(cell.isEnd)shapeRenderer.setColor(Color.RED);
-//            if(cell.isStart||cell.isExplored)shapeRenderer.setColor(Color.GREEN);
             if(cell.isBorder)shapeRenderer.setColor(Color.DARK_GRAY);
             if(cell.isRoad)shapeRenderer.setColor(Color.LIGHT_GRAY);
-
-          if(cell.isPath){
-                shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
-          }
+            if(cell.isPath){
+                shapeRenderer.rect(cell.i*player.playerSize.x, cell.j*player.playerSize.y, player.playerSize.x, player.playerSize.y);
+            }
 
         }
 
@@ -396,13 +424,13 @@ public class GameScreen implements Screen {
 
         for(GameCell cell : gameCells){
             if(cell.isRoad||cell.isBorder)
-                shapeRenderer.rect(cell.i*cellSize.x, cell.j*cellSize.y, cellSize.x, cellSize.y);
+                if(cell.isPath)
+                    shapeRenderer.rect(cell.i*player.playerSize.x, cell.j*player.playerSize.y, player.playerSize.x, player.playerSize.y);
         }
         shapeRenderer.end();
 
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-
 
         for(Vent vent : vents){
             vent.render(batch);
@@ -481,7 +509,10 @@ public class GameScreen implements Screen {
         }
 
         for(Button button : buttons){
-            button.render(batch,new Vector2(player.obj.getX(),player.obj.getY()));
+            if(showControls||button.index==7||button.index==8){
+                button.render(batch,new Vector2(player.obj.getX(),player.obj.getY()));
+
+            }
         }
 
        if(ladderActive){
@@ -491,9 +522,9 @@ public class GameScreen implements Screen {
        }
 
 //        if(player.subLevel<-2){
-            font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*6f,player.obj.getY()+player.playerSize.y*6f);
-            font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
-            font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*4.5f,player.obj.getY()+player.playerSize.y*6f);
+//            font.draw(batch,"Health "+(int) player.health,player.obj.getX()-player.playerSize.x*6f,player.obj.getY()+player.playerSize.y*6f);
+//            font.draw(batch,"Sub level "+ player.subLevel,player.obj.getX()-player.playerSize.x,player.obj.getY()+player.playerSize.y*6);
+//            font.draw(batch,(player.rifle?"Rifle ":"Pistol ")+ (int) player.ammo,player.obj.getX()+player.playerSize.x*4.5f,player.obj.getY()+player.playerSize.y*6f);
 //        }
 
 
@@ -506,13 +537,14 @@ public class GameScreen implements Screen {
         }else if(displayMessage.length()>1){
             typewriterText=(showMessageIndex < displayMessage.length()) ? displayMessage.substring(0, showMessageIndex) : displayMessage;
 
-            glyphLayout.setText(font,typewriterText, Color.WHITE, displayMessage.length()+20, Align.center, true);
+            glyphLayout.setText(font,typewriterText, Color.WHITE, displayMessage.length()+35, Align.center, true);
 
             font.draw(
                 batch,
                 glyphLayout,
-                player.obj.getX()-glyphLayout.width/2f,
-                player.obj.getY() - player.playerSize.y * 1.75f
+                player.obj.getX()-glyphLayout.width/2f+5f,
+                player.obj.getY() + player.playerSize.y * 6f
+//                player.obj.getY() - player.playerSize.y * 1.75f
             );
 
             if (showMessageDelay > typeWriterSpeed) {
@@ -538,9 +570,9 @@ public class GameScreen implements Screen {
 
         player.render(batch);
 
-        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT)?player.rifle?3:1:0]);
+        player.obj.setRegion(player.playerSheet[Gdx.input.isKeyPressed(Input.Keys.SPACE)||aim?player.rifle?3:1:0]);
 
-        if(playerFireDelay>(player.rifle?0.2f:0.55f)&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||Gdx.input.isKeyPressed(Input.Buttons.RIGHT))){
+        if(playerFireDelay>(player.rifle?0.2f:0.55f)&&(Gdx.input.isKeyPressed(Input.Keys.SPACE)||aim)){
             handleFire();
         }else{
             playerFireDelay+=delta;
@@ -562,11 +594,13 @@ public class GameScreen implements Screen {
             if(ladder.coordinates.x==player.coordinates.x&&ladder.coordinates.y==player.coordinates.y){
                 print(player.coordinates+"");
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     print("new world");
                     player.subLevel-=1;
                     showMessage=false;
+                    exploredDungeon=0;
                     generateWorld();
+                    ladderSound.play();
                     return false;
                 }
             }
@@ -575,7 +609,7 @@ public class GameScreen implements Screen {
         for(Utility utility : utilities){
             if(utility.coordinates.x==player.coordinates.x&&utility.coordinates.y==player.coordinates.y){
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     if(utility.ammo) player.ammo+=MathUtils.random(1,5)*5;
                     else if(player.health<75)player.health+=25f;
                     else player.health=100f;
@@ -591,7 +625,7 @@ public class GameScreen implements Screen {
         for(Vent vent : vents){
             if(vent.vent1Active(player.coordinates)||vent.vent2Active(player.coordinates)){
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     if(vent.vent1Active(player.coordinates)){
                         player.setPosition(vent.vent2_coordinates);
                     }else if(vent.vent2Active(player.coordinates)){
@@ -606,7 +640,7 @@ public class GameScreen implements Screen {
         for(Item item : items){
             if(item.coordinates.x==player.coordinates.x&&item.coordinates.y==player.coordinates.y){
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     displayMessage=item.res;
                     showMessageIndex=0;
                     return true;
@@ -618,7 +652,7 @@ public class GameScreen implements Screen {
         for(Memo memo : memos){
             if(memo.coordinates.x==player.coordinates.x&&memo.coordinates.y==player.coordinates.y){
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     if(memo.res==null){
                         displayMessage=docs[docsIndex];
                         memo.res=docs[docsIndex];
@@ -637,7 +671,7 @@ public class GameScreen implements Screen {
         for(NPC npc : peoples){
             if(npc.coordinates.x==player.coordinates.x&&npc.coordinates.y==player.coordinates.y){
                 showInteractButton=true;
-                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)){
+                if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
                     if(npc.canTalk){
                         if(npc.res==null){
                             displayMessage=docs[docsIndex];
@@ -670,7 +704,6 @@ public class GameScreen implements Screen {
 
                 if (checkX >= 0 && checkX < COLS && checkY >= 0 && checkY < ROWS) {
                     int subIndex = getCellIndex(checkY, checkX);
-
                     if (gameCells[subIndex] != null || !gameCells[subIndex].isBorder ) {
                         gameCells[subIndex].isPath = true;
                     }
@@ -710,7 +743,7 @@ public class GameScreen implements Screen {
     }
 
     private void handleFire() {
-        if(Gdx.input.isKeyPressed(Input.Keys.Z)||Gdx.input.isKeyPressed(Input.Buttons.LEFT)) {
+        if(Gdx.input.isKeyPressed(Input.Keys.Z)||shoot) {
 //            print("fire");
             if(player.ammo>0){
                 projectiles.add(new Projectile(player.playerSheet[player.rifle?4:2], player.coordinates, player.obj.getRotation()));
@@ -723,8 +756,8 @@ public class GameScreen implements Screen {
 
     private void controlPlayer() {
 
-        playerSpeed= (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT))? (float) (0.375 / 2.5f) :0.375f;
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)||Gdx.input.isKeyPressed(Input.Keys.D)){
+        playerSpeed= (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)||run)? (float) (0.375 / 2.5f) :0.375f;
+        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT)||Gdx.input.isKeyPressed(Input.Keys.D)||moveRight){
             playerControlDelay=0f;
 
             if(player.obj.getRotation()!=0){
@@ -733,10 +766,10 @@ public class GameScreen implements Screen {
                 return;
             }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
-                walk.play(0.15f);
+                walk.random().play(0.35f);
             }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.UP)||Gdx.input.isKeyPressed(Input.Keys.W)){
+        if(Gdx.input.isKeyPressed(Input.Keys.UP)||Gdx.input.isKeyPressed(Input.Keys.W)||moveUp){
             playerControlDelay=0f;
 
             if(player.obj.getRotation()!=90){
@@ -747,11 +780,11 @@ public class GameScreen implements Screen {
 
             }else if(checkCollision(player.coordinates.x, player.coordinates.y+1)){
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y+1));
-                walk.play(0.15f);
+                walk.random().play(0.35f);
 
             }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.LEFT)||Gdx.input.isKeyPressed(Input.Keys.A)){
+        if(Gdx.input.isKeyPressed(Input.Keys.LEFT)||Gdx.input.isKeyPressed(Input.Keys.A)||moveLeft){
             playerControlDelay=0f;
 
             if(player.obj.getRotation()!=180){
@@ -762,11 +795,11 @@ public class GameScreen implements Screen {
 
             }else  if(checkCollision(player.coordinates.x-1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x-1, player.coordinates.y));
-                walk.play(0.15f);
+                walk.random().play(0.35f);
 
             }
         }
-        if(Gdx.input.isKeyPressed(Input.Keys.DOWN)||Gdx.input.isKeyPressed(Input.Keys.S)){
+        if(Gdx.input.isKeyPressed(Input.Keys.DOWN)||Gdx.input.isKeyPressed(Input.Keys.S)||moveDown){
             playerControlDelay=0f;
 
             if(player.obj.getRotation()!=-90){
@@ -775,7 +808,7 @@ public class GameScreen implements Screen {
 
             }else  if(checkCollision(player.coordinates.x, player.coordinates.y-1)) {
                 player.setPosition(new Vector2(player.coordinates.x, player.coordinates.y-1));
-                walk.play(0.15f);
+                walk.random().play(0.35f);
 
             }
         }
@@ -816,6 +849,10 @@ public class GameScreen implements Screen {
                     player.rifle=!player.rifle;
                 }
 
+                if(keycode==Input.Keys.ESCAPE){
+                    game.setScreen(pauseScreen);
+                }
+
                 return false;
             }
 
@@ -847,24 +884,50 @@ public class GameScreen implements Screen {
                         switch(btn.index){
                             case 0:{
                                 moveUp=true;
+                                moveRight=false;
+                                moveDown=false;
+                                moveLeft=false;
+
                             }break;
                             case 1:{
                                 moveRight=true;
+                                moveDown=false;
+                                moveLeft=false;
+                                moveUp=false;
                             }break;
                             case 2:{
                                 moveDown=true;
+                                moveLeft=false;
+                                moveUp=false;
+                                moveRight=false;
                             }break;
                             case 3:{
                                 moveLeft=true;
+                                moveUp=false;
+                                moveRight=false;
+                                moveDown=false;
                             }break;
                             case 4:{
                                 run=true;
                             }break;
                             case 5:{
-                                toggle=true;
+                                player.rifle=!player.rifle;
                             }break;
                             case 6:{
                                 shoot=true;
+                            }break;
+                            case 7:{
+                                game.setScreen(pauseScreen);
+                            }break;
+                            case 8:{
+                                showControls=!showControls;
+                            }break;
+                            case 9:{
+//                                aim=!aim;
+                            }break;
+
+                            case 10:{
+                                aim=!aim;
                             }break;
                         }
                     }
@@ -885,24 +948,38 @@ public class GameScreen implements Screen {
                         switch(btn.index){
                             case 0:{
                                 moveUp=false;
+                                moveRight=false;
+                                moveDown=false;
+                                moveLeft=false;
+
                             }break;
                             case 1:{
                                 moveRight=false;
+                                moveDown=false;
+                                moveLeft=false;
+                                moveUp=false;
                             }break;
                             case 2:{
                                 moveDown=false;
+                                moveLeft=false;
+                                moveUp=false;
+                                moveRight=false;
                             }break;
                             case 3:{
                                 moveLeft=false;
+                                moveUp=false;
+                                moveRight=false;
+                                moveDown=false;
                             }break;
                             case 4:{
                                 run=false;
                             }break;
                             case 5:{
-                                toggle=false;
                             }break;
                             case 6:{
                                 shoot=false;
+                            }break;
+                            case 10:{
                             }break;
                         }
                     }
@@ -919,10 +996,34 @@ public class GameScreen implements Screen {
             public boolean touchDragged(int screenX, int screenY, int pointer) {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
+                point=new Vector2(touch.x,touch.y);
 
-//                for(GameCell cell : gameCells){
-//                    if(cell.isTouching(new Vector2(touch.x,touch.y))){
-//                        cell.isActive=true;
+//                for(Button btn : buttons){
+//                    if(btn.button.getBoundingRectangle().contains(point)){
+//                        print(btn.index);
+//                        switch(btn.index){
+//                            case 0:{
+//                                moveUp=true;
+//                            }break;
+//                            case 1:{
+//                                moveRight=true;
+//                            }break;
+//                            case 2:{
+//                                moveDown=true;
+//                            }break;
+//                            case 3:{
+//                                moveLeft=true;
+//                            }break;
+//                            case 4:{
+//                                run=true;
+//                            }break;
+//                            case 5:{
+//                                toggle=true;
+//                            }break;
+//                            case 6:{
+//                                btn.button.setPosition(point.x-btn.button.getRegionWidth()/4f,point.y-btn.button.getRegionWidth()/4f);
+//                            }break;
+//                        }
 //                    }
 //                }
                 return false;

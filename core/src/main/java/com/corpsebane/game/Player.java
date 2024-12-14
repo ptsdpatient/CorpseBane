@@ -34,6 +34,8 @@ public class Player {
         }
         playerSize=new Vector2(screen.x/COLS,screen.y/ROWS);
         obj.setSize(playerSize.x,playerSize.y);
+        health=100;
+        ammo=0f;
         obj.setOriginCenter();
     }
     public void setPosition(Vector2 position){

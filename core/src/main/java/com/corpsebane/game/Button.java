@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.Array;
 public class Button {
     Sprite button;
     int index;
+    boolean drag=false;
     String name;
     float xOffset=0,yOffset=0;
     public Button(int index,String name){
@@ -101,12 +102,24 @@ public class Button {
                 xOffset=73;
                 yOffset=35;
             }break;
+            case 10:{
+                this.button=new Sprite(extractSprites("controls_sheet.png",32,32)[7]);
+                button.setSize(20,20);
+                button.setOriginCenter();
+                button.setRotation(0);
+                xOffset=-40;
+                yOffset=-25;
+            }break;
 
         }
 
     }
-    public void render(SpriteBatch batch,Vector2 player){
+    public void setPosition(Vector2 player){
         button.setPosition(player.x+xOffset,player.y+yOffset);
+
+    }
+    public void render(SpriteBatch batch,Vector2 player){
+        setPosition(player);
         button.draw(batch);
     }
 }
