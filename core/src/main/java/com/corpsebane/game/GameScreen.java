@@ -11,6 +11,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -67,8 +68,11 @@ public class GameScreen implements Screen {
 
     String typewriterText="";
 
-    public static Array<Sound> typewriter,walk,monsterWalk,monsterGrowl;
-    public static Sound fire,hurt,ladderSound;
+    public static Array<Sound> typewriter,walk,monsterWalk,monsterGrowl,npcSound;
+    public static Sound fire,hurt,ladderSound,gameStartSound;
+
+    public Music theme;
+
     public static String[] docs;
     public static int docsIndex=0;
     public static GlyphLayout glyphLayout;
@@ -92,6 +96,8 @@ public class GameScreen implements Screen {
 
     public GameScreen(CorpseBane game){
         touch=new Vector3();
+
+        player = new Player("player");
 
         this.game=game;
         this.batch=game.batch;
@@ -120,11 +126,19 @@ public class GameScreen implements Screen {
             monsterGrowl.add(Gdx.audio.newSound(load("monster/monstergrowl"+(i+1)+".wav")));
         }
 
+        npcSound= new Array<>();
+        for(int i=0;i<2;i++){
+            npcSound.add(Gdx.audio.newSound(load("npc/speech"+(i+1)+".wav")));
+        }
 
         fire=Gdx.audio.newSound(load("gun.wav"));
         hurt=Gdx.audio.newSound(load("hurt.wav"));
         ladderSound=Gdx.audio.newSound(load("ladder.wav"));
+        gameStartSound=Gdx.audio.newSound(load("start_game.wav"));
 
+        theme=Gdx.audio.newMusic(load("lone.wav"));
+        theme.setLooping(true);
+        theme.setVolume(2f);
 
         docs=Gdx.files.internal("docs.txt").readString().split("\\r?\\n");
         glyphLayout = new GlyphLayout();
@@ -171,10 +185,10 @@ public class GameScreen implements Screen {
 
     private void handleSpawns() {
         spawns.add(new Spawn(5,0,0,0,0,4,6,50,0,0));
-        spawns.add(new Spawn(MathUtils.random(5,7),0,0,0,3,7,3,30,3,0));
-        spawns.add(new Spawn(MathUtils.random(5,7),2,0,1,6,6,8,25,5,4));
-        spawns.add(new Spawn(MathUtils.random(5,7),3,0,1,5,7,5,20,4,8));
-        spawns.add(new Spawn(MathUtils.random(5,7),7,0,1,10,6,10,25,7,14));
+        spawns.add(new Spawn(6,0,0,0,3,7,3,30,3,0));
+        spawns.add(new Spawn(4,6,0,1,6,6,8,25,5,4));
+        spawns.add(new Spawn(7,6,0,1,5,7,5,20,4,8));
+        spawns.add(new Spawn(MathUtils.random(5,7),9,0,1,10,6,10,25,7,14));
         spawns.add(new Spawn(MathUtils.random(5,12),15,0,2,10,12,7,25,4,20));
         spawns.add(new Spawn(MathUtils.random(5,12),25,0,3,10,6,10,30,10,20));
         spawns.add(new Spawn(MathUtils.random(5,7),3,0,1,5,4,5,20,4,8));
@@ -214,7 +228,8 @@ public class GameScreen implements Screen {
 
 
     public void generateWorld() {
-        player = new Player("player");
+        player.health=100;
+        player.ammo=0;
 
         initializeCells();
 
@@ -250,7 +265,7 @@ public class GameScreen implements Screen {
                 if (!gameRect.contains(testRect) || touchingOtherRect) {
                     testRect.set(MathUtils.random(0, COLS), MathUtils.random(0, ROWS), MathUtils.random(4, 15), MathUtils.random(4, 15));
                 } else {
-                    dungeons.add(new Dungeon(testRect));
+                    dungeons.add(new Dungeon(testRect,i));
                     break;
                 }
             }
@@ -286,9 +301,10 @@ public class GameScreen implements Screen {
         int connectDoorCount=0;
         while(connectDoorCount<dungeons.size){
             for(Dungeon dungeon : dungeons){
-                if(!dungeon.isConnected){
+                Dungeon randomDungeon = dungeons.random();
+                if(!dungeon.isConnected&&randomDungeon.id!=dungeon.id){
                     connectDoorCount++;
-                    pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(dungeons.random().dungeon));
+                    pathFinder.connectDoor(getRandomCellInRectangle(dungeon.dungeon),getRandomCellInRectangle(randomDungeon.dungeon));
                     dungeon.isConnected=true;
                 }
             }
@@ -356,7 +372,7 @@ public class GameScreen implements Screen {
     }
 
     public static boolean isPlayerBad(){
-        return mobKills-npcKills<0;
+        return npcKills > 3 && mobKills > 3 && mobKills < (npcKills + 20);
     }
 
     private void initializeCells() {
@@ -592,11 +608,26 @@ public class GameScreen implements Screen {
     private boolean checkInteract() {
         if(ladderActive){
             if(ladder.coordinates.x==player.coordinates.x&&ladder.coordinates.y==player.coordinates.y){
-                print(player.coordinates+"");
+//                print(player.coordinates+"");
                 showInteractButton=true;
                 if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
-                    print("new world");
-                    player.subLevel-=1;
+                    print(player.subLevel);
+                    if(player.subLevel==-1){
+                        theme.stop();
+                        theme=Gdx.audio.newMusic(load("lone.wav"));
+                        theme.setVolume(0.4f);
+                        theme.setLooping(true);
+                        theme.play();
+                    }
+                    if(player.subLevel==-3){
+                        theme.stop();
+                        theme=Gdx.audio.newMusic(load("fortressy.wav"));
+                        theme.setVolume(0.7f);
+                        theme.setLooping(true);
+                        theme.play();
+                    }
+
+                    player.subLevel--;
                     showMessage=false;
                     exploredDungeon=0;
                     generateWorld();
@@ -610,7 +641,7 @@ public class GameScreen implements Screen {
             if(utility.coordinates.x==player.coordinates.x&&utility.coordinates.y==player.coordinates.y){
                 showInteractButton=true;
                 if(Gdx.input.isKeyJustPressed(Input.Keys.Z)||shoot){
-                    if(utility.ammo) player.ammo+=MathUtils.random(1,5)*5;
+                    if(utility.ammo) player.ammo+=MathUtils.random(2,6)*MathUtils.random(4,8);
                     else if(player.health<75)player.health+=25f;
                     else player.health=100f;
                     displayMessage=utility.res;
@@ -680,6 +711,7 @@ public class GameScreen implements Screen {
                         }else{
                             displayMessage=npc.res;
                         }
+                        npcSound.random().play(0.7f);
                         showMessageIndex=0;
                         return true;
 
@@ -762,7 +794,7 @@ public class GameScreen implements Screen {
 
             if(player.obj.getRotation()!=0){
                 player.obj.setRotation(0);
-//                walk.play(0.5f);
+//              walk.play(0.5f);
                 return;
             }else if(checkCollision(player.coordinates.x+1, player.coordinates.y)) {
                 player.setPosition(new Vector2(player.coordinates.x+1, player.coordinates.y));
@@ -832,6 +864,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void hide() {
+        theme.pause();
         Gdx.input.setInputProcessor(null);
     }
 
@@ -842,6 +875,8 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+        gameStartSound.play(1f);
+        if(player.subLevel!=-1)theme.play();
         Gdx.input.setInputProcessor(new InputProcessor() {
             @Override
             public boolean keyDown(int keycode) {

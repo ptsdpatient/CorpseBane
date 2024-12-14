@@ -6,7 +6,9 @@ public class Dungeon {
     public Rectangle dungeon;
     public float currentRadius=0;
     public boolean isConnected=false,isExplored=false;
-    public Dungeon(Rectangle dungeon){
+    public int id;
+    public Dungeon(Rectangle dungeon,int id){
+        this.id=id;
         this.dungeon=dungeon;
     }
 }

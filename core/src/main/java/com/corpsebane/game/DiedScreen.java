@@ -7,6 +7,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -33,6 +34,8 @@ public class DiedScreen implements Screen {
     boolean startButtonActive=true;
     ShapeRenderer shapeRenderer;
     BitmapFont font;
+    public Sound selectSound;
+
     public DiedScreen(CorpseBane game){
         touch=new Vector3();
         point=new Vector2();
@@ -41,6 +44,7 @@ public class DiedScreen implements Screen {
         setWindowed();
         font=new BitmapFont(load("font.fnt"));
         font.getData().setScale(0.5f);
+        selectSound=Gdx.audio.newSound(load("select.wav"));
 
         title=new Texture(load("died.png"));
         shapeRenderer=new ShapeRenderer();
@@ -69,9 +73,12 @@ public class DiedScreen implements Screen {
             public boolean keyUp(int keycode) {
                 if(keycode== Input.Keys.W||keycode== Input.Keys.UP){
                     startButtonActive=!startButtonActive;
+                    selectSound.play(0.7f);
                 }
                 if(keycode== Input.Keys.S||keycode== Input.Keys.DOWN){
                     startButtonActive=!startButtonActive;
+                    selectSound.play(0.7f);
+
                 }
                 if(keycode==Input.Keys.SPACE){
                     if(startButtonActive){
@@ -119,11 +126,15 @@ public class DiedScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
+                    selectSound.play(0.7f);
+
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
+                    selectSound.play(0.7f);
+
                 }
                 return false;
             }
@@ -133,11 +144,15 @@ public class DiedScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
+                    selectSound.play(0.7f);
+
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
+                    selectSound.play(0.7f);
+
                 }
                 return false;
             }

@@ -13,6 +13,7 @@ import static com.corpsebane.game.GameScreen.pathFinder;
 import static com.corpsebane.game.GameScreen.peoples;
 import static com.corpsebane.game.GameScreen.player;
 import static com.corpsebane.game.GameScreen.screen;
+import static com.corpsebane.game.GameScreen.walk;
 import static com.corpsebane.game.Methods.extractSprites;
 import static com.corpsebane.game.Methods.load;
 import static com.corpsebane.game.Methods.print;
@@ -76,7 +77,10 @@ public class Enemy {
 
 
     public void setPosition(Vector2 position){
-        monsterWalk.random().play(0.45f);
+        if(type>2)
+            monsterWalk.random().play(0.45f);
+        else
+            walk.random().play(0.4f);
         setDirection(position);
         coordinates=position;
         obj.setPosition(position.x*size.x,position.y*size.y);
@@ -91,32 +95,32 @@ public class Enemy {
                 speed=0.3f;
             }break;
             case 1:{
-                damage=5f;
+                damage=6f;
                 health= MathUtils.random(5,8);
                 armor=MathUtils.random(2,4);
                 speed=0.6f;
             }break;
             case 2:{
-                damage=7f;
+                damage=10f;
                 health= MathUtils.random(6,12);
                 armor=MathUtils.random(3,7);
                 speed=0.4f;
 
             }break;
             case 3:{
-                damage=8f;
+                damage=16f;
                 health= MathUtils.random(3,6);
                 armor=MathUtils.random(10,15);
                 speed=0.35f;
             }break;
             case 4:{
-                damage=22f;
+                damage=27f;
                 health= MathUtils.random(3,6);
                 armor=MathUtils.random(10,15);
-                speed=0.15f;
+                speed=0.35f;
             }break;
             case 5:{
-                damage=4f;
+                damage=10f;
                 health= MathUtils.random(5,8);
                 armor=MathUtils.random(10,16);
                 speed=0.5f;
@@ -128,8 +132,8 @@ public class Enemy {
 
 
 
-        if(type<3){
-            if(stageDelay>(120*2.5f)){
+        if(type<2){
+            if(stageDelay>(120)){
                 transform(type++);
                 stageDelay=0;
             }
@@ -140,7 +144,7 @@ public class Enemy {
 //        coordinates=new Vector2(obj.getX()/size.x,obj.getY()/size.y);
         if(state== MOBSTATE.IDLE||state==MOBSTATE.PATROLLING) {
 //            print("is idle");
-            if(MathUtils.randomBoolean(0.2f)&&type>1){
+            if(MathUtils.randomBoolean(0.002f)&&type>2){
                 monsterGrowl.random().play(0.45f);
             }
             for (NPC npc : peoples) {
@@ -188,13 +192,16 @@ public class Enemy {
 
         if(state==MOBSTATE.CHASING&&path.size>1){
             if(moveDelay>speed){
-                if(type==3
+                if(type==5
                     && MathUtils.random(0, 30) % 5 == 0
                     && MathUtils.randomBoolean(0.1f)
                     && (coordinates.x + coordinates.y) % 7 == 3
                 ){
-                    enemies.add(new Enemy(MathUtils.random(0,1),coordinates,obj.getRotation()));
+                    enemies.add(new Enemy(MathUtils.random(2,3),coordinates,obj.getRotation()));
                     print("enemy spawned");
+                }
+                if(isNearby(player.coordinates,coordinates,1)){
+                    player.health-=damage;
                 }
                 setPosition(path.peek());
                 path.pop();

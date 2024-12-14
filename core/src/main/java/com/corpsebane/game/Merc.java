@@ -92,7 +92,7 @@ public class Merc {
                     if(check.size<=2)check=pathFinder.findPath(coordinates, (isNearby(coordinates,player.coordinates,6)&&isPlayerBad())?player.coordinates:enemy.coordinates, 6);
                     if(shootDelay>fireRate&&check.size>=2){
                         shootDelay=0f;
-                        setDirection(enemy.coordinates);
+                        setDirection(isPlayerBad()&&isNearby(coordinates,player.coordinates,14)?player.coordinates:enemy.coordinates);
                         projectiles.add(new Projectile(sheet[bad?1:3],coordinates,obj.getRotation()));
                     }else shootDelay+=delta;
                 }else if(isNearby(coordinates, enemy.coordinates,16)&&!isNearby(coordinates, enemy.coordinates, 9)){

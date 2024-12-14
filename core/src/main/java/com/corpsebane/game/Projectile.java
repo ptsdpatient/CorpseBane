@@ -104,7 +104,7 @@ public class Projectile {
                     if(merc.state== Merc.MercState.IDLE){
                         merc.hasSafePath=false;
                         merc.state=Merc.MercState.AIM;
-                        npcKills+=7;
+                        npcKills+= 1;
                     }
                     break;
                 }

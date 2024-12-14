@@ -22,7 +22,7 @@ public class CorpseBane extends Game {
         menuScreen=new MenuScreen(this);
         diedScreen= new DiedScreen(this);
         pauseScreen=new PauseScreen(this);
-//        setScreen(menuScreen);
+        setScreen(menuScreen);
     }
     public void setDiedScreen(){
         setScreen(diedScreen);

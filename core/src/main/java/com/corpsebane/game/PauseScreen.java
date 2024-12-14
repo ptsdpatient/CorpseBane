@@ -8,6 +8,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -33,6 +34,8 @@ public class PauseScreen implements Screen {
     boolean startButtonActive=true;
     ShapeRenderer shapeRenderer;
     BitmapFont font;
+    public Sound selectSound;
+
     public PauseScreen(CorpseBane game){
         touch=new Vector3();
         point=new Vector2();
@@ -42,9 +45,11 @@ public class PauseScreen implements Screen {
         font=new BitmapFont(load("font.fnt"));
         font.getData().setScale(0.5f);
 
+        selectSound=Gdx.audio.newSound(load("select.wav"));
+
         shapeRenderer=new ShapeRenderer();
-        startButton=new TextButton("Continue",new Rectangle(720/4f+60,120,400/3f,80/3f));
-        quitButton=new TextButton("Quit",new Rectangle(720/4f+95,80,400/3f,80/3f));
+        startButton=new TextButton("Continue",new Rectangle(720/4f+60,120,400/1.5f,80/3f));
+        quitButton=new TextButton("Quit",new Rectangle(720/4f+95,80,400/1.5f,80/3f));
 
     }
 
@@ -118,10 +123,10 @@ public class PauseScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
                 }
                 return false;
@@ -132,10 +137,10 @@ public class PauseScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
                 }
                 return false;

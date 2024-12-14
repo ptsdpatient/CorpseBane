@@ -7,6 +7,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -34,6 +36,9 @@ public class MenuScreen implements Screen {
     boolean startButtonActive=true;
     ShapeRenderer shapeRenderer;
     BitmapFont font;
+    public Sound selectSound;
+    public Music theme;
+
     public MenuScreen(CorpseBane game){
         touch=new Vector3();
         point=new Vector2();
@@ -44,11 +49,16 @@ public class MenuScreen implements Screen {
         font.getData().setScale(0.5f);
         font.setColor(Color.CHARTREUSE);
 
+        selectSound=Gdx.audio.newSound(load("select.wav"));
+        theme=Gdx.audio.newMusic(load("lone.wav"));
+        theme.setLooping(true);
+        theme.setVolume(0.8f);
+
         bg=new Texture(load("bg.jpeg"));
         title=new Texture(load("title.png"));
         shapeRenderer=new ShapeRenderer();
-        startButton=new TextButton("Play",new Rectangle(50,100,400/3f,80/3f));
-        quitButton=new TextButton("Quit",new Rectangle(50,60,400/3f,80/3f));
+        startButton=new TextButton("Play",new Rectangle(50,100,400/1.5f,80/3f));
+        quitButton=new TextButton("Quit",new Rectangle(50,60,400/1.5f,80/3f));
 
     }
 
@@ -62,6 +72,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void show() {
+        theme.play();
         Gdx.input.setInputProcessor(new InputProcessor() {
             @Override
             public boolean keyDown(int keycode) {
@@ -72,9 +83,13 @@ public class MenuScreen implements Screen {
             public boolean keyUp(int keycode) {
                 if(keycode== Input.Keys.W||keycode== Input.Keys.UP){
                     startButtonActive=!startButtonActive;
+                    selectSound.play(0.7f);
+
                 }
                 if(keycode== Input.Keys.S||keycode== Input.Keys.DOWN){
                     startButtonActive=!startButtonActive;
+                    selectSound.play(0.7f);
+
                 }
                 if(keycode==Input.Keys.SPACE){
                     if(startButtonActive){
@@ -122,11 +137,15 @@ public class MenuScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
+                    selectSound.play(0.7f);
+
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
+                    selectSound.play(0.7f);
+
                 }
                 return false;
             }
@@ -136,11 +155,15 @@ public class MenuScreen implements Screen {
                 touch = new Vector3(screenX,screenY,0);
                 camera.unproject(touch);
                 point=new Vector2(touch.x,touch.y);
-                if(startButton.bounds.contains(point)){
+                if(startButton.bounds.contains(point)&&!startButtonActive){
                     startButtonActive=true;
+                    selectSound.play(0.7f);
+
                 }
-                if(quitButton.bounds.contains(point)){
+                if(quitButton.bounds.contains(point)&&startButtonActive){
                     startButtonActive=false;
+                    selectSound.play(0.7f);
+
                 }
                 return false;
             }
@@ -191,6 +214,7 @@ public class MenuScreen implements Screen {
     @Override
     public void hide() {
         Gdx.input.setInputProcessor(null);
+        theme.pause();
     }
 
     @Override
